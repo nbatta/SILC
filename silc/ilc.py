@@ -61,9 +61,11 @@ def combineexpnoise(A1,A2):
     ans = np.block([[A1,np.zeros((len(A1), len(A2)))],[np.zeros((len(A2), len(A1))),A2]])
     return ans
 
-class ILC_simple(object):
-    def __init__(self,clusterCosmology, fgs,fwhms=[1.5],rms_noises =[1.], freqs = [150.],lmax=8000,lknee=0.,alpha=1.,dell=1.,v3mode=-1,fsky=None,noatm=False,add='None',name1,name2='None'):
-        
+
+class ILC_simple(Cosmology):
+    def __init__(self, paramDict=cosmo.defaultCosmology, constDict=cosmo.defaultConstants, fgs,fwhms=[1.5],rms_noises =[1.], freqs = [150.],lmax=8000,lknee=0.,alpha=1.,dell=1.,v3mode=-1,fsky=None,noatm=False,add='None',name1,name2='None'):
+        Cosmology.__init__(self, paramDict, constDict)
+
         #Inputs
         #clusterCosmology is a class that contains cosmological parameters and power spectra.
         #fgs is a class that contains the functional forms for the foregrounds and constants
@@ -71,7 +73,7 @@ class ILC_simple(object):
         #Options
 
         #initial set up for ILC
-        self.cc = clusterCosmology
+        self.cc = Cosmology
 
         #initializing the frequency matrices
 
