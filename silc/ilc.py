@@ -1,5 +1,3 @@
-from __future__ import print_function
-from __future__ import division
 from builtins import str
 from builtins import range
 from builtins import object
@@ -63,7 +61,8 @@ def combineexpnoise(A1,A2):
 
 
 class ILC_simple(Cosmology):
-    def __init__(self, paramDict=cosmo.defaultCosmology, constDict=cosmo.defaultConstants, fgs,fwhms=[1.5],rms_noises =[1.], freqs = [150.],lmax=8000,lknee=0.,alpha=1.,dell=1.,v3mode=-1,fsky=None,noatm=False,add='None',name1,name2='None'):
+    def __init__(self, paramDict=cosmo.defaultCosmology, constDict=cosmo.defaultConstants, fgs):
+#,fwhms=[1.5], rms_noises=[1.], freqs=[150.], lmax=8000, lknee=0., alpha=1., dell=1., v3mode=-1, fsky=None, noatm=False):
         Cosmology.__init__(self, paramDict, constDict)
 
         #Inputs
@@ -91,8 +90,8 @@ class ILC_simple(Cosmology):
         #vmode=-1 for everything other than SO and CCATp
         if v3mode>-1:
             print("V3 flag enabled.")
-            import szar.V3_calc_public as v3
-            import szar.so_noise_lat_v3_1_CAND as v3_1
+            import silc.V3_calc_public as v3
+            import silc.so_noise_lat_v3_1_CAND as v3_1
 
             if v3mode <= 2:
                 lat = v3_1.SOLatV3point1(v3mode,el=50.)
@@ -135,7 +134,7 @@ class ILC_simple(Cosmology):
                 v3ell, N_ell_T_LA, N_ell_P_LA, Map_white_noise_levels = v3.AdvACT_noise(f_sky=fsky,ell_max=v3lmax+v3dell,delta_ell=\
 v3dell)
             elif v3mode == 5:
-                import szar.lat_noise_190819_w350ds4 as ccatp
+                import silc.lat_noise_190819_w350ds4 as ccatp
                 tubes = (0,0,0,2,2,1)
                 lat = ccatp.CcatLatv2(v3mode,el=50.,survey_years=4000/24./365.24,survey_efficiency=1.0,N_tubes=tubes)
                 vfreqs = lat.get_bands()# v3.Simons_Observatory_V3_LA_bands()
@@ -157,7 +156,7 @@ v3dell)
                 Map_white_noise_levels = lat.get_white_noise(fsky)**.5
 
             elif v3mode == 6:
-                import szar.lat_noise_190819_w350ds4 as ccatp
+                import silc.lat_noise_190819_w350ds4 as ccatp
                 #tubes = (0,0,0,2,2,1)
                 lat = ccatp.CcatSOLat(v3mode,el=50.,survey_years=4000/24./365.24,survey_efficiency=1.0)
                 vfreqs = lat.get_bands()# v3.Simons_Observatory_V3_LA_bands()
