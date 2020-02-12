@@ -60,10 +60,9 @@ def combineexpnoise(A1,A2):
     return ans
 
 
-class ILC_simple(Cosmology):
-    def __init__(self, paramDict=cosmo.defaultCosmology, constDict=cosmo.defaultConstants, fgs):
-#,fwhms=[1.5], rms_noises=[1.], freqs=[150.], lmax=8000, lknee=0., alpha=1., dell=1., v3mode=-1, fsky=None, noatm=False):
-        Cosmology.__init__(self, paramDict, constDict)
+class ILC_simple:
+    def __init__(self, Cosmology, fgs ,fwhms=[1.5], rms_noises=[1.], freqs=[150.], lmax=8000, lknee=0., alpha=1., dell=1., v3mode=-1, fsky=None, noatm=False):
+        #Cosmology.__init__(self, paramDict, constDict)
 
         #Inputs
         #clusterCosmology is a class that contains cosmological parameters and power spectra.
@@ -158,7 +157,7 @@ v3dell)
             elif v3mode == 6:
                 import silc.lat_noise_190819_w350ds4 as ccatp
                 #tubes = (0,0,0,2,2,1)
-                lat = ccatp.CcatSOLat(v3mode,el=50.,survey_years=4000/24./365.24,survey_efficiency=1.0)
+                lat = ccatp.CcatLatv2(v3mode,el=50.,survey_years=4000/24./365.24,survey_efficiency=1.0)
                 vfreqs = lat.get_bands()# v3.Simons_Observatory_V3_LA_bands()
                 print("CCATP + SO goal")
                 print("Replacing ",freqs,  " with ", vfreqs)
@@ -269,6 +268,7 @@ v3dell)
             N_ll_pol_NoFG_inv=np.linalg.inv(N_ll_pol_NoFG)
             self.W_ll[ii,:]=weightcalculator(f_nu,N_ll)
             self.N_ll[ii] = np.dot(np.transpose(self.W_ll[ii,:]),np.dot(N_ll,self.W_ll[ii,:]))
+
     def GeneralClCalc(self,ellBinEdges,fsky,name1,name2='None',constraint='None'):
         ellMids  =  (ellBinEdges[1:] + ellBinEdges[:-1])/2
         if name1=='tsz':
@@ -300,7 +300,7 @@ v3dell)
 
         return ellMids,cls_out,errs,sn
     
-    def GeneralClCalcrsx(self,ellBinEdges,fsky,name1='rsx',name2):
+    def GeneralClCalcrsx(self,ellBinEdges,fsky,name1='rsx',name2='rsx'):
         ellMids  =  (ellBinEdges[1:] + ellBinEdges[:-1])/ 2
         if name1=='tsz':
             cls1 = self.fgs.tSZ(self.evalells,self.freq[0],self.freq[0]) / self.cc.c['TCMBmuK']**2. \
