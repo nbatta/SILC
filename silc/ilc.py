@@ -61,7 +61,7 @@ def combineexpnoise(A1,A2):
 
 
 class ILC_simple:
-    def __init__(self, Cosmology, fgs ,fwhms=[1.5], rms_noises=[1.], freqs=[150.], lmax=8000, lknee=0., alpha=1., dell=1., v3mode=-1, fsky=None, noatm=False):
+    def __init__(self, Cosmology, fgs ,fwhms=[1.5], rms_noises=[1.], freqs=[150.], lmax=8000, lknee=0., alpha=1., dell=1., v3mode=-1, fsky=None, noatm=False, name1='rsx', name2='None'):
         #Cosmology.__init__(self, paramDict, constDict)
 
         #Inputs
@@ -186,7 +186,7 @@ v3dell)
         self.W_ll = np.zeros([len(self.evalells),len(np.array(freqs))])
         self.W_ll_1_c_2  = np.zeros([len(self.evalells),len(np.array(freqs))])
         self.W_ll_2_c_1  = np.zeros([len(self.evalells),len(np.array(freqs))])
-    
+        self.freqs=freqs
         if name2=='None':
             if name1=='tsz':
                 f_nu = f_nu(self.cc.c,np.array(freqs)) #tSZ
@@ -205,6 +205,8 @@ v3dell)
         nell_ll=[]
         nell_ee_ll=[]
         noise2=[]
+        f_1=self.fgs.rs_nu(np.array(self.freqs))
+        f_nu2=f_1*0.0+1.
         for ii in range(len(self.evalells)):
 
             cmb_els = fq_mat*0.0 + self.cc.clttfunc(self.evalells[ii])
@@ -245,7 +247,7 @@ v3dell)
 
             totfg_cib = (self.fgs.rad_ps(self.evalells[ii],fq_mat,fq_mat_t) + self.fgs.tSZ_CIB(self.evalells[ii],fq_mat,fq_mat_t)) \
                       / self.cc.c['TCMBmuK']**2. / ((self.evalells[ii]+1.)*self.evalells[ii]) * 2.* np.pi
-            fgrspol=(self.fgs.rs_autoEE(self.evalells[ii],fq_mat,fq_mat_t)+self.fgs.totalds(self.evalells[ii],fq_mat,fq_mat_t)+self.fgs.rad_pol_ps(self.evalells[ii],fq_mat,fq_mat_t))/ self.cc.c['TCMBmuK']**2. / ((self.evalells[ii]+1.)*self.evalells[ii]) * 2.* np.pi
+            fgrspol=(self.fgs.rs_autoEE(self.evalells[ii],fq_mat,fq_mat_t))#+self.fgs.totalds(self.evalells[ii],fq_mat,fq_mat_t)+self.fgs.rad_pol_ps(self.evalells[ii],fq_mat,fq_mat_t))/ self.cc.c['TCMBmuK']**2. / ((self.evalells[ii]+1.)*self.evalells[ii]) * 2.* np.pi
 
             ksz = fq_mat*0.0 + self.fgs.ksz_temp(self.evalells[ii]) / self.cc.c['TCMBmuK']**2. / ((self.evalells[ii]+1.)*self.evalells[ii]) * 2.* np.pi
 
@@ -263,16 +265,23 @@ v3dell)
             N_ll_pol_NoFG=nellsee
             
             N_ll_inv=np.linalg.inv(N_ll)
+            self.N=N_ll
+            self.Ninv=N_ll_inv
             N_ll_NoFG_inv=np.linalg.inv(N_ll_NoFG)
             N_ll_pol_inv=np.linalg.inv(N_ll_pol)
             N_ll_pol_NoFG_inv=np.linalg.inv(N_ll_pol_NoFG)
             self.W_ll[ii,:]=weightcalculator(f_nu,N_ll)
             self.N_ll[ii] = np.dot(np.transpose(self.W_ll[ii,:]),np.dot(N_ll,self.W_ll[ii,:]))
+            self.W_ll_1_c_2[ii,:]=constweightcalculator(f_nu2,f_1,self.Ninv)
+            self.W_ll_2_c_1[ii,:]=constweightcalculator(f_1,f_nu2,self.Ninv)
+        
+            self.N_ll_1_c_2 [ii] = np.dot(np.transpose(self.W_ll_1_c_2[ii,:]) ,np.dot(self.N, self.W_ll_1_c_2[ii,:]))
+            self.N_ll_2_c_1 [ii] = np.dot(np.transpose(self.W_ll_2_c_1[ii,:]) ,np.dot(self.N, self.W_ll_2_c_1[ii,:]))
 
-    def GeneralClCalc(self,ellBinEdges,fsky,name1,name2='None',constraint='None'):
+    def GeneralClCalc(self,ellBinEdges,fsky,name1='None',name2='None',constraint='None'):
         ellMids  =  (ellBinEdges[1:] + ellBinEdges[:-1])/2
         if name1=='tsz':
-            cls = self.fgs.tSZ(self.evalells,self.freq[0],self.freq[0]) / self.cc.c['TCMBmuK']**2. \
+            cls = self.fgs.tSZ(self.evalells,self.freqs[0],self.freqs[0]) / self.cc.c['TCMBmuK']**2. \
                 / ((self.evalells+1.)*self.evalells) * 2.* np.pi
 
         elif name1=='cmb':
@@ -300,10 +309,11 @@ v3dell)
 
         return ellMids,cls_out,errs,sn
     
-    def GeneralClCalcrsx(self,ellBinEdges,fsky,name1='rsx',name2='rsx'):
+    def GeneralClCalcrsx(self,ellBinEdges,fsky,name1='rsx',name2='None'):
         ellMids  =  (ellBinEdges[1:] + ellBinEdges[:-1])/ 2
+        
         if name1=='tsz':
-            cls1 = self.fgs.tSZ(self.evalells,self.freq[0],self.freq[0]) / self.cc.c['TCMBmuK']**2. \
+            cls1 = self.fgs.tSZ(self.evalells,self.freqs[0],self.freqs[0]) / self.cc.c['TCMBmuK']**2. \
                 / ((self.evalells+1.)*self.evalells) * 2.* np.pi
 
         elif name1=='cmb':
@@ -316,7 +326,7 @@ v3dell)
         else:
             return 'wrong input'
         if name2=='tsz':
-            cls2 = self.fgs.tSZ(self.evalells,self.freq[0],self.freq[0]) / self.cc.c['TCMBmuK']**2. \
+            cls2 = self.fgs.tSZ(self.evalells,self.freqs[0],self.freqs[0]) / self.cc.c['TCMBmuK']**2. \
                 / ((self.evalells+1.)*self.evalells) * 2.* np.pi
 
         elif name2=='cmb':
@@ -331,34 +341,38 @@ v3dell)
         cls_rs = self.fgs.rs_auto(self.evalells,self.fgs.nu_rs,self.fgs.nu_rs) / self.cc.c['TCMBmuK']**2.\
                 / ((self.evalells+1.)*self.evalells) * 2.* np.pi
         if name2=='tsz':
-            f_nu = f_nu(self.cc.c,np.array(freqs)) #tSZ
+            f_nu2 = f_nu(self.cc.c,np.array(self.freqs)) #tSZ
         elif name2=='cmb':
-            f_nu = f_nu(self.cc.c,np.array(freqs))
-            f_nu = f_nu_tsz*0.0 + 1. #CMB
+            f_nu1 = f_nu(self.cc.c,np.array(self.freqs))
+            f_nu2 = f_nu1*0.0 + 1. #CMB
         elif name2=='cib':
-            f_nu = self.fgs.f_nu_cib(np.array(freqs)) #CIB
+            f_nu2 = self.fgs.f_nu_cib(np.array(self.freqs)) #CIB
         elif name1=='rsx':
-            f_nu = self.fgs.rs_nu(np.array(freqs)) #Rayleigh Cross
+            f_nu2 = self.fgs.rs_nu(np.array(self.freqs)) #Rayleigh Cross
         else:
             return 'wrong input'
-        f_1=self.fgs.rs_nu(np.array(freqs))
-        self.W_ll_1_c_2[ii,:]=constweightcalculator(f_nu,f_1,N_ll_inv)
-        self.W_ll_2_c_1[ii,:]=constweightcalculator(f_1,f_nu,N_ll_inv)
-        self.N_ll_1_c_2 [ii] = np.dot(np.transpose(self.W_ll_1_c_2[ii,:]) ,np.dot(N_ll, self.W_ll_1_c_2[ii,:]))
-        self.N_ll_2_c_1 [ii] = np.dot(np.transpose(self.W_ll_2_c_1[ii,:]) ,np.dot(N_ll, self.W_ll_2_c_1[ii,:]))
         
+        """
+        for ii in range(len(self.evalells)):
+            self.W_ll_1_c_2[ii,:]=constweightcalculator(f_nu2,f_1,self.Ninv)
+            self.W_ll_2_c_1[ii,:]=constweightcalculator(f_1,f_nu2,self.Ninv)
+        
+            self.N_ll_1_c_2 [ii] = np.dot(np.transpose(self.W_ll_1_c_2[ii,:]) ,np.dot(self.N, self.W_ll_1_c_2[ii,:]))
+            self.N_ll_2_c_1 [ii] = np.dot(np.transpose(self.W_ll_2_c_1[ii,:]) ,np.dot(self.N, self.W_ll_2_c_1[ii,:]))
+        """
         LF = LensForecast()
 
         LF.loadGenericCls("rr",self.evalells,cls_rs,self.evalells,self.N_ll_1_c_2)#self.N_ll_rsx)
-        LF.loadGenericCls("xx",self.evalells,cls_1,self.evalells,self.N_ll_1_c_2*0.0)
-        LF.loadGenericCls("tt",self.evalells,cls_2,self.evalells,self.N_ll_1_c_2)#self.N_ll_cmb)
+        LF.loadGenericCls("xx",self.evalells,cls1,self.evalells,self.N_ll_1_c_2*0.0)
+        LF.loadGenericCls("tt",self.evalells,cls2,self.evalells,self.N_ll_2_c_1)#self.N_ll_cmb)
         Nellrs = self.N_ll_1_c_2 #self.N_ll_rsx
+        #print(Nellrs)
         Nell2 = self.N_ll_2_c_1 #self.N_ll_cmb
         
-        sn2=(2.*self.evalells+1.)*np.nan_to_num((cls_rsx**2)/((cls_rs*0.0+Nellrs)*(cls_cmb+Nell2)+(cls_rsx)**2))
+        sn2=(2.*self.evalells+1.)*np.nan_to_num((cls1**2)/((cls_rs*0.0+Nellrs)*(cls2+Nell2)+(cls1)**2))
         snsq=fsky/2.*sum(sn2)
         sn=np.sqrt(snsq)
-        cls_out = np.interp(ellMids,self.evalells,cls_1)
+        cls_out = np.interp(ellMids,self.evalells,cls1)
 
         #errs = cls_out * 0.0 + 1.
         ellMids  =  (ellBinEdges[1:] + ellBinEdges[:-1]) / 2
@@ -377,3 +391,14 @@ v3dell)
         #print(er)
 
         return ellMids,cls_out,errs,sn
+    
+
+    def Noise_ellrsx(self,option='None'):
+        if (option=='None'):
+            return self.evalells,self.N_ll
+        elif (option=='NoILC'):
+            return self.evalells,self.N_ll_1_c_2
+        else:
+            return "Wrong option"
+        
+
