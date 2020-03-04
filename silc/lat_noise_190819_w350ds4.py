@@ -23,9 +23,9 @@ import scipy.optimize as op
 import sys
 
 
-#label_size = 16
-#mpl.rcParams['xtick.labelsize'] = label_size 
-#mpl.rcParams['ytick.labelsize'] = label_size 
+label_size = 16
+mpl.rcParams['xtick.labelsize'] = label_size 
+mpl.rcParams['ytick.labelsize'] = label_size 
 
 # mpl.rcParams['xtick.major.size'] = 2
 # mpl.rcParams['xtick.major.width'] = 1
@@ -37,12 +37,12 @@ import sys
 # mpl.rcParams['ytick.minor.size'] = 2
 # mpl.rcParams['ytick.minor.width'] = 1
 
-#outdir = sys.argv[1]
+outdir = sys.argv[1]
 
-#lm = 8000
-#theory = np.genfromtxt('/Users/stevekchoi/work/projects/actpol/ps/fiducial_Cl/erminia_121917/sc/sc_mysterycosmo_10K_acc3_lensedCls_180213.dat')[:lm+1]
+lm = 8000
+theory = np.genfromtxt('/Users/stevekchoi/work/projects/actpol/ps/fiducial_Cl/erminia_121917/sc/sc_mysterycosmo_10K_acc3_lensedCls_180213.dat')[:lm+1]
 
-#dl_theory = theory[:,0]*(theory[:,0]+1)/(2*np.pi)
+dl_theory = theory[:,0]*(theory[:,0]+1)/(2*np.pi)
 
 def get_atmosphere_C(freqs, version=1, el=None):
     """
@@ -537,89 +537,17 @@ class CcatLatv2(SOLatType):
             N_tubes = ref_tubes
         else:
             N_tubes = [(b,x) for (b,n),x in zip(ref_tubes, N_tubes)]
-            print ("Here")
             
         self.precompute(N_tubes, N_tels)
 
-class CcatLatPlanck(SOLatType):
-    """This special edition S4 LAT is equipped with an additional tube
-    class, XHF, containing 280 and 350 GHz detectors and blessed with
-    the calm atmosphere available at the CCAT site.  Otherwise it
-    should reproduce S4Lat results exactly.  This is a candidate for
-    introduction to the main noise model.
 
-    """
-    atm_version = 1
-    def __init__(self, sensitivity_mode=None,
-                 N_tubes=None, N_tels=None,
-                 survey_years=7.,
-                 survey_efficiency=0.23,
-                 f_sky = 0.4,
-                 el=None):
-        # Define the instrument.
-        self.bands = np.array([
-            100.,143.,217.,353., 
-            222., 280., 348., 405., 850.])
-        # scaled beam for 410 GHz but need to check 350 and 410.
-        self.beams = np.array([
-            9.7,7.2,4.9,4.9,
-            57/60., 45/60., 35/60., 30/60., 14/60.])
-        self.n_bands = len(self.bands)
 
-        # Set defaults for survey area, time, efficiency
-        self.survey_years = survey_years
-        self.survey_efficiency  = survey_efficiency
-
-        # Sensitivities of each kind of optics tube, in uK rtsec, by
-        # band.  0 represents 0 weight, not 0 noise...
-
-        #fudge fact for Planck
-        fudgefac = self.get_survey_spread(f_sky, units='sr')
-
-        nar = np.array
-        self.tube_configs = {
-            'p1':  nar([ 77.4/fudgefac,   0,    0,     0,   0,   0,    0,    0, 0]),
-            'p2':  nar([    0, 33./fudgefac,    0,     0,   0,   0,    0,    0, 0]),
-            'p3':  nar([    0,   0, 46.8/fudgefac,     0,   0,   0,    0,    0, 0]),
-            'p4':  nar([    0,   0,    0, 153.6/fudgefac,   0,   0,    0,    0, 0]),
-            # from MFH:
-            # 'UHF': nar([   0,   0,   0,   0,   0,12.5,30.0,    0,    0,0]),
-            # from gordon's spreadsheet for 1
-            'UHF': nar([   0,   0,   0,   0,7.6,14.2,    0,    0, 0]),
-            'XHF': nar([   0,   0,   0,   0,   0,   0,54.1,192.2, 0]),
-            'ZHF': nar([   0,   0,   0,   0,   0,   0,    0,  0,296605.4]),
-        }
-
-        # Save the elevation request.
-        self.el = el
-        
-        self.el_noise_params = SO_el_noise_func_params['goal']
-
-        # Factor by which to attenuate atmospheric power, given FOV
-        # relative to ACT?
-        print("check fov!")
-        self.FOV_mod = 0.5
-
-        # The reference tube config.
-        ref_tubes = [('ULF', 1), ('LF', 2), ('MF', 12), ('UHF', 2), ('XHF', 2),
-                      ('ZHF', 1)]
-
-        if N_tels is None:
-            N_tels = 1
-
-        if N_tubes is None:
-            N_tubes = ref_tubes
-        else:
-            N_tubes = [(b,x) for (b,n),x in zip(ref_tubes, N_tubes)]
-            
-        self.precompute(N_tubes, N_tels)
-
-def T_tot_nl(ell,bl,Nwhite,Nred):
+def T_tot_nl((ell,bl),Nwhite,Nred):
     ell0 = 1000.
     alpha = -3.5
     return (Nred*(ell/ell0)**(alpha) + Nwhite)/bl**2
 
-def P_tot_nl(ell,bl,Nwhite):
+def P_tot_nl((ell,bl),Nwhite):
     ell0 = 700.
     alpha = -1.4
     return (Nwhite*(ell/ell0)**(alpha) + Nwhite)/bl**2
