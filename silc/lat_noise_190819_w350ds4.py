@@ -37,12 +37,12 @@ mpl.rcParams['ytick.labelsize'] = label_size
 # mpl.rcParams['ytick.minor.size'] = 2
 # mpl.rcParams['ytick.minor.width'] = 1
 
-outdir = sys.argv[1]
+#outdir = sys.argv[1]
 
-lm = 8000
-theory = np.genfromtxt('/Users/stevekchoi/work/projects/actpol/ps/fiducial_Cl/erminia_121917/sc/sc_mysterycosmo_10K_acc3_lensedCls_180213.dat')[:lm+1]
+#lm = 8000
+#theory = np.genfromtxt('/Users/stevekchoi/work/projects/actpol/ps/fiducial_Cl/erminia_121917/sc/sc_mysterycosmo_10K_acc3_lensedCls_180213.dat')[:lm+1]
 
-dl_theory = theory[:,0]*(theory[:,0]+1)/(2*np.pi)
+#dl_theory = theory[:,0]*(theory[:,0]+1)/(2*np.pi)
 
 def get_atmosphere_C(freqs, version=1, el=None):
     """
@@ -542,12 +542,12 @@ class CcatLatv2(SOLatType):
 
 
 
-def T_tot_nl((ell,bl),Nwhite,Nred):
+def T_tot_nl(ell,bl,Nwhite,Nred):
     ell0 = 1000.
     alpha = -3.5
     return (Nred*(ell/ell0)**(alpha) + Nwhite)/bl**2
 
-def P_tot_nl((ell,bl),Nwhite):
+def P_tot_nl(ell,bl,Nwhite):
     ell0 = 700.
     alpha = -1.4
     return (Nwhite*(ell/ell0)**(alpha) + Nwhite)/bl**2
