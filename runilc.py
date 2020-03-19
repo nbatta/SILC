@@ -24,7 +24,7 @@ fgs = fgNoises(cosmo.c,ksz_battaglia_test_csv="data/ksz_template_battaglia.csv",
 cf = 0
 constraint_tag = ['','_constrained']
 
-experimentName = "CCATpSOg-v1-40"
+experimentName = "CCATp-v1-40"#"CCATpSOg-v1-40"
 
 beams = list_from_config(Config,experimentName,'beams')
 noises = list_from_config(Config,experimentName,'noises')

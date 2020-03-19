@@ -134,9 +134,10 @@ class ILC_simple:
                 v3ell, N_ell_T_LA, N_ell_P_LA, Map_white_noise_levels = v3.AdvACT_noise(f_sky=fsky,ell_max=v3lmax+v3dell,delta_ell=\
 v3dell)
             elif v3mode == 5:
-                import silc.lat_noise_190819_w350ds4 as ccatp
-                tubes = (0,0,0,2,2,1)
-                lat = ccatp.CcatLatv2(v3mode,el=50.,survey_years=4000/24./365.24,survey_efficiency=1.0,N_tubes=tubes)
+                #import silc.lat_noise_190819_w350ds4 as ccatp
+                import silc.ccat_noise_200306 as ccatp
+                #tubes = (0,0,0,2,2,1)
+                lat = ccatp.CcatLatv2(el=50.)#v3mode,el=50.,survey_years=4000/24./365.24,survey_efficiency=1.0,N_tubes=tubes)
                 vfreqs = lat.get_bands()# v3.Simons_Observatory_V3_LA_bands()
                 print("CCATP")
                 print("Replacing ",freqs,  " with ", vfreqs)
