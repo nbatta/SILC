@@ -179,7 +179,7 @@ v3dell)
                 Map_white_noise_levels = lat.get_white_noise(fsky)**.5
                 
         if add!='None':
-            freqs=np.array([ 20., 27., 39., 93., 145., 222., 280., 348., 405., 850.,100.,143.,217.,353.])
+            freqs=np.array([ 222., 280., 348., 405., 850.,100.,143.,217.,353.])
                 
         if (len(freqs) > 1):
             fq_mat   = np.matlib.repmat(freqs,len(freqs),1) 
@@ -294,12 +294,13 @@ v3dell)
                 
                 nellsp = np.diag(inst_noise1)
                 noise2.append(np.diagonal(nellsp* self.cc.c['TCMBmuK']**2.))
-                nellc=nells[0:10,0:10]#/self.cc.c['TCMBmuK']**2.
+                nellc=nells[0:5,0:5]#/self.cc.c['TCMBmuK']**2.
                 #print(nellc)
                 #nellce=nells[0:10,0:10]#/self.cc.c['TCMBmuK']**2.
                 nells=combineexpnoise(nellc,nellsp)
                 #nellsee=combineexpnoise(nellce,np.sqrt(2)*nellsp)
                 #self.noise2=np.array(noise2)
+
             nell_ll.append(np.diagonal(nells* self.cc.c['TCMBmuK']**2.))
             self.nell_ll=np.array(nell_ll)
             totfg = (self.fgs.rad_ps(self.evalells[ii],fq_mat,fq_mat_t) + self.fgs.cib_p(self.evalells[ii],fq_mat,fq_mat_t) +
@@ -324,9 +325,9 @@ v3dell)
             
             #covariance matrices, which include information from all signals
             if name1!='rsxee' and name2!='cmbee':
-                N_ll=(abs(totfgrs) + abs(cmb_els) + abs(tsz) + abs(ksz)+abs(nells))#*1000
+                N_ll=((totfgrs) + (cmb_els) + tsz + (ksz)+(nells))#*1000
             else:
-                N_ll=abs(nells)+abs(cmbee)+abs(fgrspol)
+                N_ll=(nells)+(cmbee)+(fgrspol)
             
             #self.cov=N_ll
             N_ll_NoFG=nells#*1000
@@ -516,7 +517,7 @@ v3dell)
  
         LF = LensForecast()
         LF.loadGenericCls("rr",self.evalells,cls_rs,self.evalells,self.N_ll_2_c_1)#self.N_ll_rsx)
-        LF.loadGenericCls("xx",self.evalells,cls1,self.evalells,self.N_ll_1_c_2*0.0)
+        LF.loadGenericCls("xx",self.evalells,cls1,self.evalells,self.N_ll_2_c_1*0.0)
         LF.loadGenericCls("tt",self.evalells,cls2,self.evalells,self.N_ll_1_c_2)#self.N_ll_cmb)
         Nellrs = self.N_ll_2_c_1 #self.N_ll_rsx
         #print(Nellrs)
