@@ -554,10 +554,12 @@ v3dell)
             return "Wrong option"
         
     def Forecast_CellrsxEEPlanck(self,ellBinEdges,fsky,option='None', add='None'):
+        '''
+        RS E cross CMB T
+        '''
         if add=='None':
             pass
         else:
-
             fsky1 = 0.6
         
           
@@ -597,6 +599,9 @@ v3dell)
         
         
     def Forecast_CellrsxPlanck(self,ellBinEdges,fsky,option='None', add='None'):
+        '''
+        RS T cross CMB E
+        '''
         if add=='None':
             pass
         else:
@@ -613,7 +618,7 @@ v3dell)
             ellMids  =  (ellBinEdges[1:] + ellBinEdges[:-1]) / 2
             ellWidths = np.diff(ellBinEdges)
             signal="input/CMB_rayleigh_500.dat"
-            ells,clsout=np.loadtxt(signal,unpack=True,usecols=[0,6])#need check
+            ells,clsout=np.loadtxt(signal,unpack=True,usecols=[0,4])#need check
             ells=ells[0:3000]
             clsout=clsout*(self.fgs.nu_rs/500)**4
             
@@ -637,9 +642,13 @@ v3dell)
             return ellMids,cls_out,errs,s2n
         
     def Forecast_CellrsxTTPlanck(self,ellBinEdges,fsky,option='None', add='None'):
+        '''
+        RS T cross CMB T
+        '''
         if add=='None':
             pass
         else:
+
             fsky1 = 0.6
     
             fsky2 = fsky
@@ -653,7 +662,7 @@ v3dell)
             ellMids  =  (ellBinEdges[1:] + ellBinEdges[:-1]) / 2
             ellWidths = np.diff(ellBinEdges)
             signal="input/CMB_rayleigh_500.dat"
-            ells,clsout=np.loadtxt(signal,unpack=True,usecols=[0,6])#need check
+            ells,clsout=np.loadtxt(signal,unpack=True,usecols=[0,3])#need check
             ells=ells[0:3000]
             clsout=clsout*(self.fgs.nu_rs/500)**4
             
@@ -677,6 +686,9 @@ v3dell)
             return ellMids,cls_out,errs,s2n
 
     def Forecast_CellrsxPPPlanck(self,ellBinEdges,fsky,option='None', add='None'):
+        '''
+        RS E cross CMB E
+        '''
         if add=='None':
             pass
         else:

@@ -53,6 +53,11 @@ ILC  = ilc.ILC_simple(cosmo,fgs, rms_noises = noises,fwhms=beams,freqs=freqs,lma
 #set ells
 lsedges = np.arange(10,4001,50)
 
+
+el_ilc,cls_ilc,err_il,s2nrs_c_TT = ILC.Forecast_CellrsxTTPlanck(lsedges,fsky)
+
+sys.exit()
+
 #calc ILC
 if (cf == 0):
     el_il,  cls_il,  err_il,  s2ny  = ILC.Forecast_Cellyy(lsedges,fsky)
