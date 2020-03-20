@@ -4,18 +4,15 @@ from builtins import object
 import numpy as np
 from silc.foregrounds import fgNoises
 from scipy.interpolate import interp1d
-from silc.cosmology import Cosmology
+#from silc.cosmology import Cosmology
 import silc.cosmology as cosmo
 from orphics.cosmology import noise_func
 from orphics.cosmology import LensForecast
 from silc.foregrounds import f_nu
 
-import numpy.matlib
-from scipy.special import j1
 import sys,os
 from configparser import SafeConfigParser 
-import pickle as pickle
-from orphics.io import dict_from_section, list_from_config
+from orphics.io import list_from_config
 
 
 def weightcalculator(f,N):
@@ -553,7 +550,7 @@ v3dell)
         else:
             return "Wrong option"
         
-    def Forecast_CellrsxEEPlanck(self,ellBinEdges,fsky,option='None', add='None'):
+    def Forecast_CellrsxEEPlanck(self,ellBinEdges,fsky,option='None', add='None',ellmax=3000):
         '''
         RS E cross CMB T
         '''
@@ -574,11 +571,11 @@ v3dell)
             ellMids  =  (ellBinEdges[1:] + ellBinEdges[:-1]) / 2
             ellWidths = np.diff(ellBinEdges)
             signal="input/CMB_rayleigh_500.dat"
-            ells,clsout=np.loadtxt(signal,unpack=True,usecols=[0,5])
-            ells=ells[0:3000]
+            ells,clsout=np.loadtxt(signal,unpack=True,usecols=[0,5]) #Cross ET
+            ells=ells[0:ellmax]
             clsout=clsout*(self.fgs.nu_rs/500)**4
             
-            cls_out=clsout[0:3000]
+            cls_out=clsout[0:ellmax]
             cls_out=cls_out/ self.cc.c['TCMBmuK']**2./ ((ells+1.)*ells) * 2.* np.pi
         
             #sn2=(2.*self.evalells+1.)*np.nan_to_num((cls_out**2)/((clrsee+errrsee)*(cltt+errtt)+(cls_out)**2))
@@ -598,7 +595,7 @@ v3dell)
             return ellMids,cls_out,errs,s2n
         
         
-    def Forecast_CellrsxPlanck(self,ellBinEdges,fsky,option='None', add='None'):
+    def Forecast_CellrsxPlanck(self,ellBinEdges,fsky,option='None', add='None',ellmax=3000):
         '''
         RS T cross CMB E
         '''
@@ -618,11 +615,11 @@ v3dell)
             ellMids  =  (ellBinEdges[1:] + ellBinEdges[:-1]) / 2
             ellWidths = np.diff(ellBinEdges)
             signal="input/CMB_rayleigh_500.dat"
-            ells,clsout=np.loadtxt(signal,unpack=True,usecols=[0,4])#need check
-            ells=ells[0:3000]
+            ells,clsout=np.loadtxt(signal,unpack=True,usecols=[0,4]) #Cross TE
+            ells=ells[0:ellmax]
             clsout=clsout*(self.fgs.nu_rs/500)**4
             
-            cls_out=clsout[0:3000]
+            cls_out=clsout[0:ellmax]
             cls_out=cls_out/ self.cc.c['TCMBmuK']**2./ ((ells+1.)*ells) * 2.* np.pi
         
             #sn2=(2.*self.evalells+1.)*np.nan_to_num((cls_out**2)/((clrsee+errrsee)*(cltt+errtt)+(cls_out)**2))
@@ -641,7 +638,7 @@ v3dell)
             s2n=np.nan_to_num(np.sqrt(s2n))
             return ellMids,cls_out,errs,s2n
         
-    def Forecast_CellrsxTTPlanck(self,ellBinEdges,fsky,option='None', add='None'):
+    def Forecast_CellrsxTTPlanck(self,ellBinEdges,fsky,option='None', add='None',ellmax=3000):
         '''
         RS T cross CMB T
         '''
@@ -663,10 +660,12 @@ v3dell)
             ellWidths = np.diff(ellBinEdges)
             signal="input/CMB_rayleigh_500.dat"
             ells,clsout=np.loadtxt(signal,unpack=True,usecols=[0,3])#need check
-            ells=ells[0:3000]
+            ells=ells[0:ellmax]
             clsout=clsout*(self.fgs.nu_rs/500)**4
             
-            cls_out=clsout[0:3000]
+            print (np.shape(clsout))
+
+            cls_out=clsout[0:ellmax]
             cls_out=cls_out/ self.cc.c['TCMBmuK']**2./ ((ells+1.)*ells) * 2.* np.pi
         
             #sn2=(2.*self.evalells+1.)*np.nan_to_num((cls_out**2)/((clrsee+errrsee)*(cltt+errtt)+(cls_out)**2))
@@ -685,7 +684,7 @@ v3dell)
             s2n=np.nan_to_num(np.sqrt(s2n))
             return ellMids,cls_out,errs,s2n
 
-    def Forecast_CellrsxPPPlanck(self,ellBinEdges,fsky,option='None', add='None'):
+    def Forecast_CellrsxPPPlanck(self,ellBinEdges,fsky,option='None', add='None',ellmax=3000):
         '''
         RS E cross CMB E
         '''
@@ -706,10 +705,10 @@ v3dell)
             ellWidths = np.diff(ellBinEdges)
             signal="input/CMB_rayleigh_500.dat"
             ells,clsout=np.loadtxt(signal,unpack=True,usecols=[0,6])#need check
-            ells=ells[0:3000]
+            ells=ells[0:ellmax]
             clsout=clsout*(self.fgs.nu_rs/500)**4
             
-            cls_out=clsout[0:3000]
+            cls_out=clsout[0:ellmax]
             cls_out=cls_out/ self.cc.c['TCMBmuK']**2./ ((ells+1.)*ells) * 2.* np.pi
         
             #sn2=(2.*self.evalells+1.)*np.nan_to_num((cls_out**2)/((clrsee+errrsee)*(cltt+errtt)+(cls_out)**2))
