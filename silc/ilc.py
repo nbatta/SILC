@@ -413,19 +413,19 @@ class ILC_simple:
         
         if type=='tt': #T_CMB T_rs
             clsX=np.loadtxt(signalfile,unpack=True,usecols=[4]) 
-            clsX=clsX*(self.fgs.nu_rs/500)**4
+            clsX=clsX*(self.fgs.nu_rs/500)**4 / self.cc.c['TCMBmuK']**2./ ((ell_temp+1.)*ell_temp) * 2.* np.pi
             sn,NllX = self.cross_err_calc(ells,cmb,Nll_cmb,rs,Nll_rs,clsX,detection)
         elif type=='te':#E_CMB T_rs
             clsX=np.loadtxt(signalfile,unpack=True,usecols=[5]) 
-            clsX=clsX*(self.fgs.nu_rs/500)**4
+            clsX=clsX*(self.fgs.nu_rs/500)**4 / self.cc.c['TCMBmuK']**2./ ((ell_temp+1.)*ell_temp) * 2.* np.pi
             sn,NllX = self.cross_err_calc(ells,cmb_pol,Nll_cmb_pol,rs,Nll_rs,clsX,detection)
         elif type=='et': #T_CMB E_rs
             clsX=np.loadtxt(signalfile,unpack=True,usecols=[6]) 
-            clsX=clsX*(self.fgs.nu_rs/500)**4
+            clsX=clsX*(self.fgs.nu_rs/500)**4 / self.cc.c['TCMBmuK']**2./ ((ell_temp+1.)*ell_temp) * 2.* np.pi
             sn, NllX = self.cross_err_calc(ells,cmb,Nll_cmb,rs_pol,Nll_rs_pol,clsX,detection)
         elif type=='ee': #E_CMB E_rs
             clsX=np.loadtxt(signalfile,unpack=True,usecols=[7]) 
-            clsX=clsX*(self.fgs.nu_rs/500)**4
+            clsX=clsX*(self.fgs.nu_rs/500)**4 / self.cc.c['TCMBmuK']**2./ ((ell_temp+1.)*ell_temp) * 2.* np.pi
             sn, NllX = self.cross_err_calc(ells,cmb_pol,Nll_cmb_pol,rs_pol,Nll_rs_pol,clsX,detection)
         else:
             print('wrong option')
