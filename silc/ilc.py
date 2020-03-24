@@ -10,7 +10,6 @@ from orphics.cosmology import noise_func
 from orphics.cosmology import LensForecast
 from silc.foregrounds import f_nu
 
-import numpy.matlib
 import sys,os
 from configparser import SafeConfigParser 
 from orphics.io import list_from_config
