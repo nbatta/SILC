@@ -71,6 +71,8 @@ class ILC_simple:
         #vmode selecting for observation source classification
         #vmode=-1 for everything other than SO and CCATp
 
+        self.fsky = fsky
+
         #Set up the noise (this is overly complex)
         if v3mode>-1:
             print("V3 flag enabled.")
@@ -282,19 +284,13 @@ class ILC_simple:
         self.nells = np.reshape(nell,[len(self.evalells),len(self.freqs),len(self.freqs)])
         self.nells_pol =np.reshape(nell_pol,[len(self.evalells),len(self.freqs),len(self.freqs)])
 
-    def cmb_opt(self,constrained='rs',returnW=False):
-        f = self.freqs*0.0 + 1. #CMB
+    def gen_ilc(self,f,g,constrained=None):
 
-        if constrained=='rs':
-            g = self.fgs.rs_nu(np.array(self.freqs)) #Rayliegh
-        elif constrained=='tsz':
-            g = f_nu(self.cc.c,np.array(self.freqs)) #tSZ
-        elif constrained=='cib':
-            g = self.fgs.f_nu_cib(np.array(self.freqs)) #CIB
-        
         Nll_ilc = np.array([])
         Nll_pol_ilc = np.array([])
-
+        Wll_out = np.array([])
+        Wll_pol_out= np.array([])
+        
         for ii in range(len(self.evalells)):
             Nll = self.totfgrs[ii,:,:] + self.cmb_ell[ii,None,None] + self.tsz[ii,:,:] + self.ksz[ii,None,None] + self.nells[ii,:,:]
             Nll_pol = self.cmb_ell_pol[ii,None,None] + self.fgrspol[ii,:,:] + self.nells_pol[ii,:,:]
@@ -308,14 +304,161 @@ class ILC_simple:
             else:
                 Wll = constweightcalculator(g,f,Nll_inv)
                 Wll_pol = constweightcalculator(g,f,Nll_pol_inv)
-
+                
+            Wll_out = np.append(Wll_out,Wll)
+            Wll_pol_out = np.append(Wll_pol_out,Wll_pol)
             Nll_ilc = np.append(Nll_ilc, np.dot(np.transpose(Wll), np.dot(Nll, Wll)))
             Nll_pol_ilc = np.append(Nll_pol_ilc, np.dot(np.transpose(Wll_pol), np.dot(Nll_pol, Wll_pol)))
 
-        if (returnW):
-            return Nll_ilc, Nll_pol_ilc, Wll, Wll_pol
+        return Nll_ilc, Nll_pol_ilc, Wll_out, Wll_pol_out
+
+
+    def cmb_opt(self,constrained='rs',returnW=False):
+        f = self.freqs*0.0 + 1. #CMB
+
+        if constrained=='rs':
+            g = self.fgs.rs_nu(np.array(self.freqs)) #Rayliegh
+        elif constrained=='tsz':
+            g = f_nu(self.cc.c,np.array(self.freqs)) #tSZ
+        elif constrained=='cib':
+            g = self.fgs.f_nu_cib(np.array(self.freqs)) #CIB
         else:
-            return Nll_ilc, Nll_pol_ilc
+            g = 0
+
+        Nll, Nll_pol, Wll, Wll_pol = self.gen_ilc(f,g,constrained)
+
+        if (returnW):
+            return Nll, Nll_pol, Wll, Wll_pol ### THIS ISN'T WORKING YET
+        else:
+            return Nll, Nll_pol
+
+    def rs_opt(self,constrained='cmb',returnW=False):
+        f = self.fgs.rs_nu(np.array(self.freqs)) #Rayliegh
+
+        if constrained=='cmb':
+            g = self.freqs*0.0 + 1. #CMB
+        else:
+            g = 0
+
+        Nll, Nll_pol, Wll, Wll_pol = self.gen_ilc(f,g,constrained)
+
+        if (returnW):
+            return Nll, Nll_pol, Wll, Wll_pol ### THIS ISN'T WORKING YET
+        else:
+            return Nll, Nll_pol
+
+    def tsz_opt(self,constrained=None,returnW=False):
+        f = f_nu(self.cc.c,np.array(self.freqs)) #tSZ
+
+        if constrained=='cmb':
+            g = self.freqs*0.0 + 1. #CMB
+        elif constrained=='cib':
+            g = self.fgs.f_nu_cib(np.array(self.freqs)) #CIB
+        else:
+            g = 0
+
+        Nll, Nll_pol, Wll, Wll_pol = self.gen_ilc(f,g,constrained)
+
+        if (returnW):
+            return Nll, Nll_pol, Wll, Wll_pol ### THIS ISN'T WORKING YET
+        else:
+            return Nll, Nll_pol
+
+    def cross_err_calc(self,ell,C1,N1,C2,N2,X,detect=True):
+        covs = []
+        s2n=[]
+        
+        for k in range(len(ell)):
+            i=int(ell[k])
+            ClSum = np.nan_to_num(((C1[k]+N1[k])*(C2[k]+N2[k])+(X[i])**2))
+            if (detect):
+                s2nper=(2*i+1)*np.nan_to_num((X[i]**2)/((C1[k]+N1[k])*(C2[k]+N2[k])))
+            else:
+                s2nper=(2*i+1)*np.nan_to_num((X[i]**2)/((C1[k]+N1[k])*(C2[k]+N2[k])+(X)**2))
+            var = ClSum/(2.*i+1.)/self.fsky
+            covs.append(var)
+            s2n.append(s2nper)
+
+        errs=np.sqrt(np.array(covs))
+        s2n=self.fsky/2.*sum(s2n)
+        s2n=np.sqrt(s2n)
+        return s2n,errs
+
+    #def Rayleigh_forecast(self,ellBinEdges,type='tt',detection=True):
+    def Rayleigh_forecast(self,ellmax,type='tt',detection=True):
+
+        #ellMids = (ellBinEdges[1:] + ellBinEdges[:-1]) / 2
+        #ellWidths = np.diff(ellBinEdges)
+        signalfile ="input/CMB_rayleigh_500.dat"
+        fsky = self.fsky
+
+        ells = np.arange(2,ellmax,1)
+
+        Nll_cmb, Nll_cmb_pol = self.cmb_opt()
+        Nll_rs,  Nll_rs_pol  = self.rs_opt()
+        
+        cmb = self.cmb_ell
+        cmb_pol = self.cmb_ell_pol
+        
+        rs = self.fgs.rs_auto(self.evalells,self.fgs.nu_rs,self.fgs.nu_rs) / self.cc.c['TCMBmuK']**2.\
+            / ((self.evalells+1.)*self.evalells) * 2.* np.pi
+        
+        rs_pol = self.fgs.rs_autoEE(self.evalells,self.fgs.nu_rs,self.fgs.nu_rs) / self.cc.c['TCMBmuK']**2.\
+            / ((self.evalells+1.)*self.evalells) * 2.* np.pi
+        
+        ell_temp=np.loadtxt(signalfile,unpack=True,usecols=[0])
+
+        assert np.min(ell_temp) == np.min(self.evalells) and np.min(ells) == np.min(self.evalells), "Issue with template ells"
+        assert np.max(ells) < np.max(self.evalells) and np.max(ells) < np.max(ell_temp), "Issue with template ells"
+        
+        if type=='tt': #T_CMB T_rs
+            clsX=np.loadtxt(signalfile,unpack=True,usecols=[4]) 
+            clsX=clsX*(self.fgs.nu_rs/500)**4
+            sn,NllX = self.cross_err_calc(ells,cmb,Nll_cmb,rs,Nll_rs,clsX,detection)
+        elif type=='te':#E_CMB T_rs
+            clsX=np.loadtxt(signalfile,unpack=True,usecols=[5]) 
+            clsX=clsX*(self.fgs.nu_rs/500)**4
+            sn,NllX = self.cross_err_calc(ells,cmb_pol,Nll_cmb_pol,rs,Nll_rs,clsX,detection)
+        elif type=='et': #T_CMB E_rs
+            clsX=np.loadtxt(signalfile,unpack=True,usecols=[6]) 
+            clsX=clsX*(self.fgs.nu_rs/500)**4
+            sn, NllX = self.cross_err_calc(ells,cmb,Nll_cmb,rs_pol,Nll_rs_pol,clsX,detection)
+        elif type=='ee': #E_CMB E_rs
+            clsX=np.loadtxt(signalfile,unpack=True,usecols=[7]) 
+            clsX=clsX*(self.fgs.nu_rs/500)**4
+            sn, NllX = self.cross_err_calc(ells,cmb_pol,Nll_cmb_pol,rs_pol,Nll_rs_pol,clsX,detection)
+        else:
+            print('wrong option')
+            
+        return clsX, NllX, sn
+
+
+#Cross ET            #ells=ells[0:ellmax]
+            
+
+            #cls_out=clsout[0:ellmax]
+            #cls_out=cls_out/ self.cc.c['TCMBmuK']**2./ ((ells+1.)*ells) * 2.* np.pi
+
+            #sn2=(2.*self.evalells+1.)*np.nan_to_num((cls_out**2)/((clrsee+errrsee)*(cltt+errtt)+(cls_out)**2))                                                                                                        
+            #covs = []
+            #s2n=[]
+            #l=l1
+            #for k in range(len(l)):
+            #    i=int(l[k])
+            #    ClSum = np.nan_to_num(((clrsee[k]+errrsee[k])*(cltt[k]+errtt[k])+(cls_out[i])**2))
+            #    s2nper=(2*i+1)*np.nan_to_num((cls_out[i]**2)/((clrsee[k]+errrsee[k])*(cltt[k]+errtt[k])+(cls_out[i])**2))
+            #    var = ClSum/(2.*i+1.)/fsky2/400
+            #    covs.append(var)
+            #    s2n.append(s2nper)
+            #errs=np.sqrt(np.array(covs))
+            #s2n=fsky2/2.*sum(s2n)
+            #s2n=np.sqrt(s2n)
+            #return ellMids,cls_out,errs,s2n
+
+
+        #return cls,nlls,S/N 
+
+
 
         '''
         self.W_ll = np.zeros([len(self.evalells),len(np.array(freqs))])
