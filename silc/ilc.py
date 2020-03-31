@@ -283,7 +283,7 @@ class ILC_simple:
         self.nells = np.reshape(nell,[len(self.evalells),len(self.freqs),len(self.freqs)])
         self.nells_pol =np.reshape(nell_pol,[len(self.evalells),len(self.freqs),len(self.freqs)])
 
-    def gen_ilc(self,f,g,constrained=None):
+    def gen_ilc(self,f,g,constrained=None,noforegrounds=None):
 
         Nll_ilc = np.array([])
         Nll_pol_ilc = np.array([])
@@ -291,8 +291,13 @@ class ILC_simple:
         Wll_pol_out= np.array([])
         
         for ii in range(len(self.evalells)):
-            Nll = self.totfgrs[ii,:,:] + self.cmb_ell[ii,None,None] + self.tsz[ii,:,:] + self.ksz[ii,None,None] + self.nells[ii,:,:]
-            Nll_pol = self.cmb_ell_pol[ii,None,None] + self.fgrspol[ii,:,:] + self.nells_pol[ii,:,:]
+            if noforegrounds == None:
+                Nll = self.totfgrs[ii,:,:] + self.cmb_ell[ii,None,None] + self.tsz[ii,:,:] + self.ksz[ii,None,None] + self.nells[ii,:,:]
+                Nll_pol = self.cmb_ell_pol[ii,None,None] + self.fgrspol[ii,:,:] + self.nells_pol[ii,:,:]
+
+            else:
+                Nll = self.nells[ii,:,:]
+                Nll_pol = self.nells_pol[ii,:,:]
 
             Nll_inv=np.linalg.inv(Nll)
             Nll_pol_inv=np.linalg.inv(Nll_pol)
@@ -312,7 +317,7 @@ class ILC_simple:
         return Nll_ilc, Nll_pol_ilc, Wll_out, Wll_pol_out
 
 
-    def cmb_opt(self,constrained='rs',returnW=False):
+    def cmb_opt(self,constrained='rs',noforegrounds=None,returnW=False):
         f = self.freqs*0.0 + 1. #CMB
 
         if constrained=='rs':
@@ -324,14 +329,14 @@ class ILC_simple:
         else:
             g = 0
 
-        Nll, Nll_pol, Wll, Wll_pol = self.gen_ilc(f,g,constrained)
+        Nll, Nll_pol, Wll, Wll_pol = self.gen_ilc(f,g,constrained,noforegrounds)
 
         if (returnW):
             return Nll, Nll_pol, Wll, Wll_pol ### THIS ISN'T WORKING YET
         else:
             return Nll, Nll_pol
 
-    def rs_opt(self,constrained='cmb',returnW=False):
+    def rs_opt(self,constrained='cmb',noforegrounds=None,returnW=False):
         f = self.fgs.rs_nu(np.array(self.freqs)) #Rayliegh
 
         if constrained=='cmb':
@@ -339,14 +344,14 @@ class ILC_simple:
         else:
             g = 0
 
-        Nll, Nll_pol, Wll, Wll_pol = self.gen_ilc(f,g,constrained)
+        Nll, Nll_pol, Wll, Wll_pol = self.gen_ilc(f,g,constrained,noforegrounds)
 
         if (returnW):
             return Nll, Nll_pol, Wll, Wll_pol ### THIS ISN'T WORKING YET
         else:
             return Nll, Nll_pol
 
-    def tsz_opt(self,constrained=None,returnW=False):
+    def tsz_opt(self,constrained=None,noforegrounds=None,returnW=False):
         f = f_nu(self.cc.c,np.array(self.freqs)) #tSZ
 
         if constrained=='cmb':
@@ -356,7 +361,7 @@ class ILC_simple:
         else:
             g = 0
 
-        Nll, Nll_pol, Wll, Wll_pol = self.gen_ilc(f,g,constrained)
+        Nll, Nll_pol, Wll, Wll_pol = self.gen_ilc(f,g,constrained,noforegrounds)
 
         if (returnW):
             return Nll, Nll_pol, Wll, Wll_pol ### THIS ISN'T WORKING YET
@@ -379,12 +384,12 @@ class ILC_simple:
             s2n.append(s2nper)
 
         errs=np.sqrt(np.array(covs))
-        s2n=self.fsky/2.*sum(s2n)
+        s2n=self.fsky*sum(s2n)
         s2n=np.sqrt(s2n)
         return s2n,errs
 
     #def Rayleigh_forecast(self,ellBinEdges,type='tt',detection=True):
-    def Rayleigh_forecast(self,ellmax,type='tt',detection=True):
+    def Rayleigh_forecast(self,ellmax,type='tt',detection=True,noforegrounds=None):
 
         #ellMids = (ellBinEdges[1:] + ellBinEdges[:-1]) / 2
         #ellWidths = np.diff(ellBinEdges)
@@ -393,8 +398,8 @@ class ILC_simple:
 
         ells = np.arange(2,ellmax,1)
 
-        Nll_cmb, Nll_cmb_pol = self.cmb_opt()
-        Nll_rs,  Nll_rs_pol  = self.rs_opt()
+        Nll_cmb, Nll_cmb_pol = self.cmb_opt(noforegrounds=noforegrounds)
+        Nll_rs,  Nll_rs_pol  = self.rs_opt(noforegrounds=noforegrounds)
         
         cmb = self.cmb_ell
         cmb_pol = self.cmb_ell_pol
