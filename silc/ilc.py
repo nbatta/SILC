@@ -423,7 +423,7 @@ class ILC_simple:
             clsX=np.loadtxt(signalfile,unpack=True,usecols=[5]) 
             clsX=clsX*(self.fgs.nu_rs/500)**4 / self.cc.c['TCMBmuK']**2./ ((ell_temp+1.)*ell_temp) * 2.* np.pi
             sn,NllX = self.cross_err_calc(ells,cmb,Nll_cmb,rs_pol,Nll_rs_pol,clsX,detection)
-        elif type=='et': #T_CMB E_rs
+        elif type=='et': #E_CMB T_rs
             clsX=np.loadtxt(signalfile,unpack=True,usecols=[6]) 
             clsX=clsX*(self.fgs.nu_rs/500)**4 / self.cc.c['TCMBmuK']**2./ ((ell_temp+1.)*ell_temp) * 2.* np.pi
             sn, NllX = self.cross_err_calc(ells,cmb_pol,Nll_cmb_pol,rs,Nll_rs,clsX,detection)
