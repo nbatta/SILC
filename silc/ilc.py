@@ -73,7 +73,10 @@ class ILC_simple:
         self.fsky = fsky
 
         #Set up the noise (this is overly complex)
-        if v3mode>-1:
+        if v3mode==-1:
+            freqs=np.array(freqs)
+
+        elif v3mode>-1:
             print("V3 flag enabled.")
             import silc.V3_calc_public as v3
             import silc.so_noise_lat_v3_1_CAND as v3_1
@@ -287,8 +290,8 @@ class ILC_simple:
 
         Nll_ilc = np.array([])
         Nll_pol_ilc = np.array([])
-        Wll_out = np.array([])
-        Wll_pol_out= np.array([])
+        Wll_out = []
+        Wll_pol_out= []
         
         for ii in range(len(self.evalells)):
             if noforegrounds == None:
@@ -309,8 +312,8 @@ class ILC_simple:
                 Wll = constweightcalculator(g,f,Nll_inv)
                 Wll_pol = constweightcalculator(g,f,Nll_pol_inv)
                 
-            Wll_out = np.append(Wll_out,Wll)
-            Wll_pol_out = np.append(Wll_pol_out,Wll_pol)
+            Wll_out.append(Wll)
+            Wll_pol_out.append(Wll_pol)
             Nll_ilc = np.append(Nll_ilc, np.dot(np.transpose(Wll), np.dot(Nll, Wll)))
             Nll_pol_ilc = np.append(Nll_pol_ilc, np.dot(np.transpose(Wll_pol), np.dot(Nll_pol, Wll_pol)))
 
@@ -332,7 +335,7 @@ class ILC_simple:
         Nll, Nll_pol, Wll, Wll_pol = self.gen_ilc(f,g,constrained,noforegrounds)
 
         if (returnW):
-            return Nll, Nll_pol, Wll, Wll_pol ### THIS ISN'T WORKING YET
+            return Nll, Nll_pol, Wll, Wll_pol
         else:
             return Nll, Nll_pol
 
@@ -347,7 +350,7 @@ class ILC_simple:
         Nll, Nll_pol, Wll, Wll_pol = self.gen_ilc(f,g,constrained,noforegrounds)
 
         if (returnW):
-            return Nll, Nll_pol, Wll, Wll_pol ### THIS ISN'T WORKING YET
+            return Nll, Nll_pol, Wll, Wll_pol
         else:
             return Nll, Nll_pol
 
@@ -364,7 +367,7 @@ class ILC_simple:
         Nll, Nll_pol, Wll, Wll_pol = self.gen_ilc(f,g,constrained,noforegrounds)
 
         if (returnW):
-            return Nll, Nll_pol, Wll, Wll_pol ### THIS ISN'T WORKING YET
+            return Nll, Nll_pol, Wll, Wll_pol
         else:
             return Nll, Nll_pol
 
