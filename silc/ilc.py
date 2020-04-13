@@ -319,6 +319,28 @@ class ILC_simple:
 
         return Nll_ilc, Nll_pol_ilc, Wll_out, Wll_pol_out
 
+    def gen_ilc_nopol(self,f,g,constrained=None,noforegrounds=None):
+
+        Nll_ilc = np.array([])
+        Wll_out = []
+
+        for ii in range(len(self.evalells)):
+            if noforegrounds == None:
+                Nll = self.totfgrs[ii,:,:] + self.cmb_ell[ii,None,None] + self.tsz[ii,:,:] + self.ksz[ii,None,None] + self.nells[ii,:,:]
+            else:
+                Nll = self.nells[ii,:,:]
+
+            Nll_inv=np.linalg.inv(Nll)
+
+            if constrained == None:
+                Wll = weightcalculator(f, Nll)
+            else:
+                Wll = constweightcalculator(g,f,Nll_inv)
+
+            Wll_out.append(Wll)
+            Nll_ilc = np.append(Nll_ilc, np.dot(np.transpose(Wll), np.dot(Nll, Wll)))
+
+        return Nll_ilc, Wll_out
 
     def cmb_opt(self,constrained='rs',noforegrounds=None,returnW=False):
         f = self.freqs*0.0 + 1. #CMB
@@ -364,13 +386,18 @@ class ILC_simple:
         else:
             g = 0
 
-        Nll, Nll_pol, Wll, Wll_pol = self.gen_ilc(f,g,constrained,noforegrounds)
+        Nll, Wll = self.gen_ilc_nopol(f,g,constrained,noforegrounds)
 
         if (returnW):
-            return Nll, Nll_pol, Wll, Wll_pol
+            return Nll, Wll
         else:
-            return Nll, Nll_pol
+            return Nll
 
+    '''
+    def err_calc(ell,C1,N1):
+        
+        return s2n, errs
+    '''
     def cross_err_calc(self,ell,C1,N1,C2,N2,X,detect=True):
         covs = []
         s2n=[]
@@ -438,6 +465,14 @@ class ILC_simple:
             print('wrong option')
             
         return clsX, NllX, sn
+
+    '''
+    def tsz_forecast(self,ellmax,constrained=None):
+        fsky = self.fsky
+        ells = np.arange(2,ellmax,1)
+        Nll_tsz = self.tsz_opt()
+        return cls,nlls,sn
+    '''    
 
 
 #Cross ET            #ells=ells[0:ellmax]
