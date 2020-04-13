@@ -502,7 +502,7 @@ class ILC_simple:
 
 
 
-        '''
+    '''
         self.W_ll = np.zeros([len(self.evalells),len(np.array(freqs))])
         self.W_ll_1_c_2  = np.zeros([len(self.evalells),len(np.array(freqs))])
         self.W_ll_2_c_1  = np.zeros([len(self.evalells),len(np.array(freqs))])
@@ -577,7 +577,7 @@ class ILC_simple:
         
             self.N_ll_1_c_2 [ii] = np.dot(np.transpose(self.W_ll_1_c_2[ii,:]) ,np.dot(self.N, self.W_ll_1_c_2[ii,:]))
             self.N_ll_2_c_1 [ii] = np.dot(np.transpose(self.W_ll_2_c_1[ii,:]) ,np.dot(self.N, self.W_ll_2_c_1[ii,:]))
-        '''
+    '''
 
     def GeneralClCalc(self,ellBinEdges,fsky,name1='None',name2='None',constraint='None'):
         ellMids  =  (ellBinEdges[1:] + ellBinEdges[:-1])/2
