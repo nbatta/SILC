@@ -154,23 +154,50 @@ class ILC_simple:
                 Map_white_noise_levels = lat.get_white_noise(fsky)**.5
 
             if add!='None':
-                iniFile = "input/exp_config.ini"
-                Config = SafeConfigParser()
-                Config.optionxform=str
-                Config.read(iniFile)
-
-                experimentName1 = 'PlanckHFI'
-
-                beams1 = list_from_config(Config,experimentName1,'beams')
-                noises1 = list_from_config(Config,experimentName1,'noises')
-                freqs1 = list_from_config(Config,experimentName1,'freqs')
-                lmax1 = int(Config.getfloat(experimentName1,'lmax'))
-                lknee1 = list_from_config(Config,experimentName1,'lknee')[0]
-                alpha1 = list_from_config(Config,experimentName1,'alpha')[0]
-                fsky1 = 0.6
+                if add!='SO+P':
+                    iniFile = "input/exp_config.ini"
+                    Config = SafeConfigParser()
+                    Config.optionxform=str
+                    Config.read(iniFile)
+                    
+                    experimentName1 = 'PlanckHFI'
+                    
+                    beams1 = list_from_config(Config,experimentName1,'beams')
+                    noises1 = list_from_config(Config,experimentName1,'noises')
+                    freqs1 = list_from_config(Config,experimentName1,'freqs')
+                    lmax1 = int(Config.getfloat(experimentName1,'lmax'))
+                    lknee1 = list_from_config(Config,experimentName1,'lknee')[0]
+                    alpha1 = list_from_config(Config,experimentName1,'alpha')[0]
+                    fsky1 = 0.6
 
                 #Add Planck
-                freqs = np.append(freqs,freqs1)
+                    freqs = np.append(freqs,freqs1)
+                else:
+                    iniFile = "input/exp_config.ini"
+                    Config = SafeConfigParser()
+                    Config.optionxform=str
+                    Config.read(iniFile)
+
+                    experimentName1 = 'PlanckHFI'
+
+                    beams1 = list_from_config(Config,experimentName1,'beams')
+                    noises1 = list_from_config(Config,experimentName1,'noises')
+                    freqs1 = list_from_config(Config,experimentName1,'freqs')
+                    lmax1 = int(Config.getfloat(experimentName1,'lmax'))
+                    lknee1 = list_from_config(Config,experimentName1,'lknee')[0]
+                    alpha1 = list_from_config(Config,experimentName1,'alpha')[0]
+                    fsky1 = 0.6
+
+                #Add Planck
+                    freqs = np.append(freqs,freqs1)
+                #Add SO
+                    lat2 = v3_1.SOLatV3point1(1,el=50.) #SO BASELINE
+                    vfreqs = lat2.get_bands()
+                    freqs = np.append(freqs,vfreqs)
+
+                    fsky_SO = 0.4 #SO nominal fsky
+                    v3ell_SO,N_ell_T_LA_full_SO, N_ell_P_LA_SO = lat2.get_noise_curves(fsky_SO, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
+
 
         #if (len(freqs) > 1):
         #    fq_mat   = np.matlib.repmat(freqs,len(freqs),1)
@@ -219,13 +246,28 @@ class ILC_simple:
             
                 #evalells = np.arange(2,lmax1,dell1)
             if add!='None':
-                inst_noise1 = noise_func(self.evalells[ii],np.array(beams1),np.array(noises1),lknee1,alpha1,dimensionless=False)/self.cc.c['TCMBmuK']**2.
-                inst_noise1_pol = np.sqrt(2.)* inst_noise1
-                
-                nells_planck = np.diag(inst_noise1)
-                nells_planck_pol = np.diag(inst_noise1_pol)
-                nells=combineexpnoise(nells,nells_planck)
-                nells_pol = combineexpnoise(nells_pol,nells_planck_pol)
+                if add!='SO+P':
+                    inst_noise1 = noise_func(self.evalells[ii],np.array(beams1),np.array(noises1),lknee1,alpha1,dimensionless=False)/self.cc.c['TCMBmuK']**2.
+                    inst_noise1_pol = np.sqrt(2.)* inst_noise1
+                    
+                    nells_planck = np.diag(inst_noise1)
+                    nells_planck_pol = np.diag(inst_noise1_pol)
+                    nells=combineexpnoise(nells,nells_planck)
+                    nells_pol = combineexpnoise(nells_pol,nells_planck_pol)
+                else:
+                    inst_noise1 = noise_func(self.evalells[ii],np.array(beams1),np.array(noises1),lknee1,alpha1,dimensionless=False)/self.cc.c['TCMBmuK']**2.
+                    inst_noise1_pol = np.sqrt(2.)* inst_noise1
+
+                    nells_planck = np.diag(inst_noise1)
+                    nells_planck_pol = np.diag(inst_noise1_pol)
+                    nells=combineexpnoise(nells,nells_planck)
+                    nells_pol = combineexpnoise(nells_pol,nells_planck_pol)
+
+                    nells_SO = N_ell_T_LA_full_SO[:,:,ii]/ self.cc.c['TCMBmuK']**2.
+                    nells_SO_pol = N_ell_P_LA_SO[:,:,ii]/ self.cc.c['TCMBmuK']**2.
+
+                    nells=combineexpnoise(nells,nells_SO)
+                    nells_pol = combineexpnoise(nells_pol,nells_SO_pol)
 
             #cmb_ell = np.append(cmb_ell, self.cc.clttfunc(self.evalells[ii]))
             #cmb_ell_pol = np.append(cmb_ell_pol,self.cc.cleefunc(self.evalells[ii]))
