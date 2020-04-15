@@ -48,7 +48,7 @@ def combineexpnoise(A1,A2):
 
 
 class ILC_simple:
-    def __init__(self, Cosmology, fgs ,fwhms=[1.5], rms_noises=[1.], freqs=[150.], lmax=8000, lknee=0., alpha=1., dell=1., v3mode=-1, fsky=None, noatm=False, name1='rsx', name2='None', add='None'):
+    def __init__(self, Cosmology, fgs ,fwhms=[1.5], rms_noises=[1.], freqs=[150.], lmax=8000, lknee=0., alpha=1., dell=1., v3mode=-1, fsky=None, noatm=False, add='None'):
         '''
         Inputs
         clusterCosmology is a class that contains cosmological parameters and power spectra.
@@ -112,7 +112,7 @@ class ILC_simple:
                 v3ell, N_ell_T_LA, N_ell_P_LA, Map_white_noise_levels = v3.AdvACT_noise(f_sky=fsky,ell_max=v3lmax+v3dell,delta_ell=v3dell)
 
             elif v3mode == 5:
-                import silc.ccat_noise_200306 as ccatp
+                import silc.ccat_noise_200414 as ccatp
                 lat = ccatp.CcatLatv2('baseline',el=50.)
                 vfreqs = lat.get_bands()
                 print("CCATP")
