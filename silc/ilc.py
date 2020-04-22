@@ -73,21 +73,28 @@ class ILC_simple:
         self.fsky = fsky
 
         #Set up the noise (this is overly complex)
-        if v3mode==-1:
-            freqs=np.array(freqs)
+        freq=np.array(freqs)
 
-        elif v3mode>-1:
+        if v3mode>-1:
             print("V3 flag enabled.")
-            import silc.V3_calc_public as v3
-            import silc.so_noise_lat_v3_1_CAND as v3_1
+            #import silc.so_noise_lat_v3_1_CAND as v3_1
+            import silc.SO_Noise_Calculator_Public_v3_1_1 as v3_1
             
+            if v3mode==0:
+                mode = 'threshold'
+            elif v3mode==2: 
+                mode = 'goal'
+            else:
+                mode = 'baseline'
+
             if v3mode <= 2:
-                lat = v3_1.SOLatV3point1(v3mode,el=50.)
+                lat = v3_1.SOLatV3point1(mode,el=50.,survey_years=5.,survey_efficiency = 0.2*0.85)
+                #lat = v3_1.SOLatV3point1(v3mode,el=50.)
                 vfreqs = lat.get_bands()
                 print("Simons Obs")
-                print("Replacing ",freqs,  " with ", vfreqs)
+                print("Replacing ",freq,  " with ", vfreqs)
                 N_bands = len(vfreqs)
-                freqs = vfreqs
+                freq = vfreqs
                 vbeams = lat.get_beams()
                 print("Replacing ",fwhms,  " with ", vbeams)
                 fwhms = vbeams
@@ -102,8 +109,9 @@ class ILC_simple:
                 Map_white_noise_levels = lat.get_white_noise(fsky)**.5
 
             elif v3mode == 3:
+                import silc.V3_calc_public as v3
                 vfreqs = v3.AdvACT_bands()
-                freqs = vfreqs
+                freq = vfreqs
                 vbeams = v3.AdvACT_beams()
                 fwhms = vbeams
 
@@ -111,9 +119,10 @@ class ILC_simple:
                 v3dell = np.diff(self.evalells)[0]
                 v3ell, N_ell_T_LA, N_ell_P_LA, Map_white_noise_levels = v3.AdvACT_noise(f_sky=fsky,ell_max=v3lmax+v3dell,delta_ell=v3dell)
 
+                '''
             elif v3mode == 5:
                 import silc.ccat_noise_200414 as ccatp
-                lat = ccatp.CcatLatv2('baseline',el=50.)
+                lat = ccatp.CcatLatv2(mode,el=50.)
                 vfreqs = lat.get_bands()
                 print("CCATP")
                 print("Replacing ",freqs,  " with ", vfreqs)
@@ -131,16 +140,16 @@ class ILC_simple:
                 #_noatm
                 N_ell_T_LA = np.diagonal(N_ell_T_LA_full).T
                 Map_white_noise_levels = lat.get_white_noise(fsky)**.5
-
-            elif v3mode == 6:
-                import silc.lat_noise_190819_w350ds4 as ccatp
-                lat = ccatp.CcatLatv2(v3mode,el=50.,survey_years=4000/24./365.24,survey_efficiency=1.0)
-                vfreqs = lat.get_bands()# v3.Simons_Observatory_V3_LA_bands()
+                '''
+            elif v3mode == 5:
+                import  silc.ccat_noise_200414 as ccatp #silc.lat_noise_190819_w350ds4 as ccatp
+                lat = ccatp.CcatLatv2b(v3mode,el=50.,survey_years=4000/24./365.24,survey_efficiency=1.0)
+                vfreqs = lat.get_bands()
                 print("CCATP + SO goal")
-                print("Replacing ",freqs,  " with ", vfreqs)
+                print("Replacing ",freq,  " with ", vfreqs)
                 N_bands = len(vfreqs)
-                freqs = vfreqs
-                vbeams = lat.get_beams()#v3.Simons_Observatory_V3_LA_beams() 
+                freq = vfreqs
+                vbeams = lat.get_beams()
                 print("Replacing ",fwhms,  " with ", vbeams)
                 fwhms = vbeams
 
@@ -153,50 +162,67 @@ class ILC_simple:
                 N_ell_T_LA = np.diagonal(N_ell_T_LA_full).T
                 Map_white_noise_levels = lat.get_white_noise(fsky)**.5
 
-            if add!='None':
-                if add!='SO+P':
-                    iniFile = "input/exp_config.ini"
-                    Config = SafeConfigParser()
-                    Config.optionxform=str
-                    Config.read(iniFile)
-                    
-                    experimentName1 = 'PlanckHFI'
-                    
-                    beams1 = list_from_config(Config,experimentName1,'beams')
-                    noises1 = list_from_config(Config,experimentName1,'noises')
-                    freqs1 = list_from_config(Config,experimentName1,'freqs')
-                    lmax1 = int(Config.getfloat(experimentName1,'lmax'))
-                    lknee1 = list_from_config(Config,experimentName1,'lknee')[0]
-                    alpha1 = list_from_config(Config,experimentName1,'alpha')[0]
-                    fsky1 = 0.6
+            if add=='P':
+                iniFile = "input/exp_config.ini"
+                Config = SafeConfigParser()
+                Config.optionxform=str
+                Config.read(iniFile)
+                
+                experimentName1 = 'PlanckHFI'
+                
+                beams1 = list_from_config(Config,experimentName1,'beams')
+                noises1 = list_from_config(Config,experimentName1,'noises')
+                freqs1 = list_from_config(Config,experimentName1,'freqs')
+                lmax1 = int(Config.getfloat(experimentName1,'lmax'))
+                lknee1 = list_from_config(Config,experimentName1,'lknee')[0]
+                alpha1 = list_from_config(Config,experimentName1,'alpha')[0]
+                fsky1 = 0.6
+                
+                #Add Planck
+                freq = np.append(freq,freqs1)
+            elif add=='SO+P':
+                iniFile = "input/exp_config.ini"
+                Config = SafeConfigParser()
+                Config.optionxform=str
+                Config.read(iniFile)
+                
+                experimentName1 = 'PlanckHFI'
+                
+                beams1 = list_from_config(Config,experimentName1,'beams')
+                noises1 = list_from_config(Config,experimentName1,'noises')
+                freqs1 = list_from_config(Config,experimentName1,'freqs')
+                lmax1 = int(Config.getfloat(experimentName1,'lmax'))
+                lknee1 = list_from_config(Config,experimentName1,'lknee')[0]
+                alpha1 = list_from_config(Config,experimentName1,'alpha')[0]
+                fsky1 = 0.6
 
                 #Add Planck
-                    freqs = np.append(freqs,freqs1)
-                else:
-                    iniFile = "input/exp_config.ini"
-                    Config = SafeConfigParser()
-                    Config.optionxform=str
-                    Config.read(iniFile)
-
-                    experimentName1 = 'PlanckHFI'
-
-                    beams1 = list_from_config(Config,experimentName1,'beams')
-                    noises1 = list_from_config(Config,experimentName1,'noises')
-                    freqs1 = list_from_config(Config,experimentName1,'freqs')
-                    lmax1 = int(Config.getfloat(experimentName1,'lmax'))
-                    lknee1 = list_from_config(Config,experimentName1,'lknee')[0]
-                    alpha1 = list_from_config(Config,experimentName1,'alpha')[0]
-                    fsky1 = 0.6
-
-                #Add Planck
-                    freqs = np.append(freqs,freqs1)
+                freq = np.append(freq,freqs1)
                 #Add SO
-                    lat2 = v3_1.SOLatV3point1(1,el=50.) #SO BASELINE
-                    vfreqs = lat2.get_bands()
-                    freqs = np.append(freqs,vfreqs)
+                lat2 = v3_1.SOLatV3point1(mode,survey_years=5.,survey_efficiency=0.2*0.85) #SO BASELINE
+                vfreqs2 = lat2.get_bands()
+                freq = np.append(freq,vfreqs2)
+                fsky_SO = 0.4 #SO nominal fsky
+                v3ell_SO,N_ell_T_LA_full_SO, N_ell_P_LA_SO = lat2.get_noise_curves(fsky_SO, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
 
-                    fsky_SO = 0.4 #SO nominal fsky
-                    v3ell_SO,N_ell_T_LA_full_SO, N_ell_P_LA_SO = lat2.get_noise_curves(fsky_SO, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
+            elif add=='SO+SAT':
+                #add SO LAT
+                lat2 = v3_1.SOLatV3point1(mode,survey_years=5.,survey_efficiency=0.2*0.85)#el=50.) #SO BASELINE
+                vfreqs1 = lat2.get_bands()
+                freq = np.append(freq,vfreqs1)
+                fsky_SO = 0.4 #SO nominal fsky
+                v3ell_SO,N_ell_T_LA_full_SO, N_ell_P_LA_SO = lat2.get_noise_curves(fsky_SO, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
+                #add SO SAT
+                sat = v3_1.SOSatV3point1(mode,survey_years=5.,survey_efficiency=0.2*0.85)#,el=50.) #SO BASELINE
+                vfreqs2 = sat.get_bands()
+
+                freqs_nosat = freq
+                freq = np.append(freq,vfreqs2)
+                fsky_SOsat = 0.1 #SO nominal fsky
+                sat_lmax = 400
+                v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat = sat.get_noise_curves(fsky_SOsat, sat_lmax, v3dell, full_covar=False, deconv_beam=True)
+                print (v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat)
+
 
 
         #if (len(freqs) > 1):
@@ -220,6 +246,12 @@ class ILC_simple:
         cib = np.array([])
    
         for ii in range(len(self.evalells)):
+
+            if ((self.evalells[ii] > sat_lmax) and (add=='SO+SAT')):
+                freqs = freqs_nosat
+            else:
+                freqs = freq
+
             if v3mode < 0:
                 inst_noise = (noise_func(self.evalells[ii],np.array(fwhms),np.array(rms_noises),lknee,alpha,dimensionless=False) /  self.cc.c['TCMBmuK']**2.)
                 nells = abs(np.diag(inst_noise))
@@ -245,29 +277,44 @@ class ILC_simple:
                 nells_pol = N_ell_P_LA[:,:,ii]/ self.cc.c['TCMBmuK']**2.
             
                 #evalells = np.arange(2,lmax1,dell1)
-            if add!='None':
-                if add!='SO+P':
-                    inst_noise1 = noise_func(self.evalells[ii],np.array(beams1),np.array(noises1),lknee1,alpha1,dimensionless=False)/self.cc.c['TCMBmuK']**2.
-                    inst_noise1_pol = np.sqrt(2.)* inst_noise1
-                    
-                    nells_planck = np.diag(inst_noise1)
-                    nells_planck_pol = np.diag(inst_noise1_pol)
-                    nells=combineexpnoise(nells,nells_planck)
-                    nells_pol = combineexpnoise(nells_pol,nells_planck_pol)
-                else:
-                    inst_noise1 = noise_func(self.evalells[ii],np.array(beams1),np.array(noises1),lknee1,alpha1,dimensionless=False)/self.cc.c['TCMBmuK']**2.
-                    inst_noise1_pol = np.sqrt(2.)* inst_noise1
+            if add =='P':
+                inst_noise1 = noise_func(self.evalells[ii],np.array(beams1),np.array(noises1),lknee1,alpha1,dimensionless=False)/self.cc.c['TCMBmuK']**2.
+                inst_noise1_pol = np.sqrt(2.)* inst_noise1
+                
+                nells_planck = np.diag(inst_noise1)
+                nells_planck_pol = np.diag(inst_noise1_pol)
+                nells=combineexpnoise(nells,nells_planck)
+                nells_pol = combineexpnoise(nells_pol,nells_planck_pol)
+            elif add =='SO+P':
+                inst_noise1 = noise_func(self.evalells[ii],np.array(beams1),np.array(noises1),lknee1,alpha1,dimensionless=False)/self.cc.c['TCMBmuK']**2.
+                inst_noise1_pol = np.sqrt(2.)* inst_noise1
+                
+                nells_planck = np.diag(inst_noise1)
+                nells_planck_pol = np.diag(inst_noise1_pol)
+                nells=combineexpnoise(nells,nells_planck)
+                nells_pol = combineexpnoise(nells_pol,nells_planck_pol)
 
-                    nells_planck = np.diag(inst_noise1)
-                    nells_planck_pol = np.diag(inst_noise1_pol)
-                    nells=combineexpnoise(nells,nells_planck)
-                    nells_pol = combineexpnoise(nells_pol,nells_planck_pol)
+                nells_SO = N_ell_T_LA_full_SO[:,:,ii]/ self.cc.c['TCMBmuK']**2.
+                nells_SO_pol = N_ell_P_LA_SO[:,:,ii]/ self.cc.c['TCMBmuK']**2.
+                
+                nells=combineexpnoise(nells,nells_SO)
+                nells_pol = combineexpnoise(nells_pol,nells_SO_pol)
 
-                    nells_SO = N_ell_T_LA_full_SO[:,:,ii]/ self.cc.c['TCMBmuK']**2.
-                    nells_SO_pol = N_ell_P_LA_SO[:,:,ii]/ self.cc.c['TCMBmuK']**2.
+            elif add =='SO+SAT':
+                nells_SO = N_ell_T_LA_full_SO[:,:,ii]/ self.cc.c['TCMBmuK']**2.
+                nells_SO_pol = N_ell_P_LA_SO[:,:,ii]/ self.cc.c['TCMBmuK']**2.
 
-                    nells=combineexpnoise(nells,nells_SO)
-                    nells_pol = combineexpnoise(nells_pol,nells_SO_pol)
+                nells=combineexpnoise(nells,nells_SO)
+                nells_pol = combineexpnoise(nells_pol,nells_SO_pol)
+
+                
+                if self.evalells[ii] <= sat_lmax:
+                    nells_SOsat = np.diag(N_ell_T_LA_full_SOsat[:,ii]/ self.cc.c['TCMBmuK']**2.)
+                    nells_SOsat_pol = np.diag(N_ell_P_LA_SOsat[:,ii]/ self.cc.c['TCMBmuK']**2.)
+
+                    nells=combineexpnoise(nells,nells_SOsat)
+                    nells_pol = combineexpnoise(nells_pol,nells_SOsat_pol)
+
 
             #cmb_ell = np.append(cmb_ell, self.cc.clttfunc(self.evalells[ii]))
             #cmb_ell_pol = np.append(cmb_ell_pol,self.cc.cleefunc(self.evalells[ii]))
