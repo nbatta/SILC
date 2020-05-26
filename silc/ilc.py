@@ -247,8 +247,9 @@ class ILC_simple:
    
         for ii in range(len(self.evalells)):
 
-            if ((self.evalells[ii] > sat_lmax) and (add=='SO+SAT')):
-                freqs = freqs_nosat
+            if (add=='SO+SAT'):
+                if (self.evalells[ii] > sat_lmax):
+                    freqs = freqs_nosat
             else:
                 freqs = freq
 
@@ -532,7 +533,7 @@ class ILC_simple:
         ell_temp=np.loadtxt(signalfile,unpack=True,usecols=[0])
 
         assert np.min(ell_temp) == np.min(self.evalells) and np.min(ells) == np.min(self.evalells), "Issue with template ells"
-        assert np.max(ells) < np.max(self.evalells) and np.max(ells) < np.max(ell_temp), "Issue with template ells"
+        assert np.max(ells) <= np.max(self.evalells) and np.max(ells) <= np.max(ell_temp), "Issue with template ells"
         
         if type=='tt': #T_CMB T_rs
             clsX=np.loadtxt(signalfile,unpack=True,usecols=[4]) 
