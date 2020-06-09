@@ -216,12 +216,13 @@ class ILC_simple:
                 sat = v3_1.SOSatV3point1(mode,survey_years=5.,survey_efficiency=0.2*0.85)#,el=50.) #SO BASELINE
                 vfreqs2 = sat.get_bands()
 
-                freqs_nosat = freq
+#                freqs_nosat = freq
                 freq = np.append(freq,vfreqs2)
                 fsky_SOsat = 0.1 #SO nominal fsky
                 sat_lmax = 400
                 v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat = sat.get_noise_curves(fsky_SOsat, sat_lmax, v3dell, full_covar=False, deconv_beam=True)
-                print (v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat)
+                #print (v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat)
+                print ('here',sat_lmax)
 
 
 
@@ -245,13 +246,16 @@ class ILC_simple:
         tsz = np.array([])
         cib = np.array([])
    
+        freqs = freq
+
         for ii in range(len(self.evalells)):
 
-            if (add=='SO+SAT'):
-                if (self.evalells[ii] > sat_lmax):
-                    freqs = freqs_nosat
-            else:
-                freqs = freq
+#            if (add=='SO+SAT'):
+#                print (sat_lmax)
+#                if (self.evalells[ii] > sat_lmax):
+#                    freqs = freqs_nosat
+#            else:
+        
 
             if v3mode < 0:
                 inst_noise = (noise_func(self.evalells[ii],np.array(fwhms),np.array(rms_noises),lknee,alpha,dimensionless=False) /  self.cc.c['TCMBmuK']**2.)
@@ -309,12 +313,17 @@ class ILC_simple:
                 nells_pol = combineexpnoise(nells_pol,nells_SO_pol)
 
                 
-                if self.evalells[ii] <= sat_lmax:
-                    nells_SOsat = np.diag(N_ell_T_LA_full_SOsat[:,ii]/ self.cc.c['TCMBmuK']**2.)
+                if self.evalells[ii] < sat_lmax:
+                    nells_SOsat = np.diag(N_ell_P_LA_SOsat[:,ii]/ self.cc.c['TCMBmuK']**2.)*0+1.
                     nells_SOsat_pol = np.diag(N_ell_P_LA_SOsat[:,ii]/ self.cc.c['TCMBmuK']**2.)
 
-                    nells=combineexpnoise(nells,nells_SOsat)
+                    nells=combineexpnoise(nells,nells_SOsat*(10**9))
                     nells_pol = combineexpnoise(nells_pol,nells_SOsat_pol)
+
+                else:
+                    nells_SOsat = (10**9)*np.identity(len(nells_SOsat))
+                    nells=combineexpnoise(nells,nells_SOsat)
+                    nells_pol = combineexpnoise(nells_pol,nells_SOsat)
 
 
             #cmb_ell = np.append(cmb_ell, self.cc.clttfunc(self.evalells[ii]))
