@@ -222,7 +222,7 @@ class ILC_simple:
                 sat_lmax = 400
                 v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat = sat.get_noise_curves(fsky_SOsat, sat_lmax, v3dell, full_covar=False, deconv_beam=True)
                 #print (v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat)
-                print ('here',sat_lmax)
+                #print ('here',sat_lmax)
 
 
 
@@ -314,7 +314,7 @@ class ILC_simple:
 
                 
                 if self.evalells[ii] < sat_lmax:
-                    nells_SOsat = np.diag(N_ell_P_LA_SOsat[:,ii]/ self.cc.c['TCMBmuK']**2.)*0+1.
+                    nells_SOsat = (10**9)*np.identity(len(N_ell_P_LA_SOsat[:,ii]))
                     nells_SOsat_pol = np.diag(N_ell_P_LA_SOsat[:,ii]/ self.cc.c['TCMBmuK']**2.)
 
                     nells=combineexpnoise(nells,nells_SOsat*(10**9))
