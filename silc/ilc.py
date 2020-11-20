@@ -53,9 +53,7 @@ class ILC_simple:
         Inputs
         clusterCosmology is a class that contains cosmological parameters and power spectra.
         fgs is a class that contains the functional forms for the foregrounds and constants
-
         Options
-
         '''
         #initial set up for ILC
         self.cc = Cosmology
@@ -131,11 +129,9 @@ class ILC_simple:
                 vbeams = lat.get_beams()
                 print("Replacing ",fwhms,  " with ", vbeams)
                 fwhms = vbeams
-
                 v3lmax = self.evalells.max()
                 v3dell = np.diff(self.evalells)[0]
                 print("Using ",fsky," for fsky")
-
                 v3ell,N_ell_T_LA_full, N_ell_P_LA = lat.get_noise_curves(fsky, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
                 #_noatm
                 N_ell_T_LA = np.diagonal(N_ell_T_LA_full).T
@@ -161,6 +157,7 @@ class ILC_simple:
                 #_noatm
                 N_ell_T_LA = np.diagonal(N_ell_T_LA_full).T
                 Map_white_noise_levels = lat.get_white_noise(fsky)**.5
+                print(Map_white_noise_levels)
 
             if add=='P':
                 iniFile = "input/exp_config.ini"
@@ -204,46 +201,28 @@ class ILC_simple:
                 freq = np.append(freq,vfreqs2)
                 fsky_SO = 0.4 #SO nominal fsky
                 v3ell_SO,N_ell_T_LA_full_SO, N_ell_P_LA_SO = lat2.get_noise_curves(fsky_SO, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
-
-            elif add=='SAT':
-                sat = v3_1.SOSatV3point1(mode,survey_years=5.,survey_efficiency=0.2*0.85)#,el=50.) #SO BASELINE
-                vfreqs2 = sat.get_bands()
-#                freqs_nosat = freq
-                freq = np.append(freq,vfreqs2)
-                fsky_SOsat = 0.1 #SO nominal fsky
-                sat_lmax = 2000 #real one:400
-                v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat = sat.get_noise_curves(fsky_SOsat, sat_lmax, v3dell, full_covar=False, deconv_beam=True)
-                #print (v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat)
-                #print ('here',sat_lmax)
-
-            elif add=='SO+SAT':
-                #add SO LAT
-                lat2 = v3_1.SOLatV3point1(mode,survey_years=5.,survey_efficiency=0.2*0.85)#el=50.) #SO BASELINE
-                vfreqs1 = lat2.get_bands()
-                freq = np.append(freq,vfreqs1)
-                fsky_SO = 0.4 #SO nominal fsky
-                v3ell_SO,N_ell_T_LA_full_SO, N_ell_P_LA_SO = lat2.get_noise_curves(fsky_SO, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
-                #add SO SAT
-                sat = v3_1.SOSatV3point1(mode,survey_years=5.,survey_efficiency=0.2*0.85)#,el=50.) #SO BASELINE
-                vfreqs2 = sat.get_bands()
-
-#                freqs_nosat = freq
-                freq = np.append(freq,vfreqs2)
-                fsky_SOsat = 0.1 #SO nominal fsky
-                sat_lmax = 2000 #400
-                v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat = sat.get_noise_curves(fsky_SOsat, sat_lmax, v3dell, full_covar=False, deconv_beam=True)
-                #print (v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat)
-                #print ('here',sat_lmax)
-
-
-            elif add=='P+SO+SAT':
+            
+            elif add=='L+P':
                 iniFile = "input/exp_config.ini"
                 Config = SafeConfigParser()
                 Config.optionxform=str
                 Config.read(iniFile)
+                
+                experimentName2 = 'LiteBird'
+                
+                beams2 = list_from_config(Config,experimentName2,'beams')
+                noises2 = list_from_config(Config,experimentName2,'noises')
+                freqs2 = list_from_config(Config,experimentName2,'freqs')
+                lmax2 = int(Config.getfloat(experimentName2,'lmax'))
+                lknee2 = list_from_config(Config,experimentName2,'lknee')[0]
+                alpha2 = list_from_config(Config,experimentName2,'alpha')[0]
+                fsky2 = 0.7
 
+                #Add Planck
+                freq = np.append(freqs2,freq)
+                
                 experimentName1 = 'PlanckHFI'
-
+                
                 beams1 = list_from_config(Config,experimentName1,'beams')
                 noises1 = list_from_config(Config,experimentName1,'noises')
                 freqs1 = list_from_config(Config,experimentName1,'freqs')
@@ -254,22 +233,168 @@ class ILC_simple:
 
                 #Add Planck
                 freq = np.append(freq,freqs1)
+                
+            elif add=='SO':
+                
+                #Add SO
+                lat2 = v3_1.SOLatV3point1(mode,survey_years=5.,survey_efficiency=0.2*0.85) #SO BASELINE
+                vfreqs2 = lat2.get_bands()
+                freq = np.append(freq,vfreqs2)
+                fsky_SO = 0.4 #SO nominal fsky
+                v3ell_SO,N_ell_T_LA_full_SO, N_ell_P_LA_SO = lat2.get_noise_curves(fsky_SO, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
+            
+            
+            
+            elif add=='SAT':
+                sat = v3_1.SOSatV3point1(mode,survey_years=5.,survey_efficiency=0.2*0.85)#,el=50.) #SO BASELINE
+                vfreqs2 = sat.get_bands()
+
+#                freqs_nosat = freq
+                freq = np.append(vfreqs2,freq)
+                fsky_SOsat = 0.1 #SO nominal fsky
+                sat_lmax = 2000 #real one:400
+                v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat = sat.get_noise_curves(fsky_SOsat, sat_lmax, v3dell, full_covar=False, deconv_beam=True)
+                #print (v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat)
+                print ('here',sat_lmax)
+                
+            
+            elif add=='SO+SAT':
+                sat = v3_1.SOSatV3point1(mode,survey_years=5.,survey_efficiency=0.2*0.85)#,el=50.) #SO BASELINE
+                vfreqs2 = sat.get_bands()
+
+#                freqs_nosat = freq
+                freq = np.append(vfreqs2,freq)
+                fsky_SOsat = 0.1 #SO nominal fsky
+                sat_lmax = 2000 #real one:400
+                v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat = sat.get_noise_curves(fsky_SOsat, sat_lmax, v3dell, full_covar=False, deconv_beam=True)
+                #print (v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat)
+                #print ('here',sat_lmax)
+                #add SO LAT
                 lat2 = v3_1.SOLatV3point1(mode,survey_years=5.,survey_efficiency=0.2*0.85)#el=50.) #SO BASELINE
                 vfreqs1 = lat2.get_bands()
                 freq = np.append(freq,vfreqs1)
                 fsky_SO = 0.4 #SO nominal fsky
                 v3ell_SO,N_ell_T_LA_full_SO, N_ell_P_LA_SO = lat2.get_noise_curves(fsky_SO, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
                 #add SO SAT
+                
+                
+            elif add=='P+SAT':
+                #add SO SAT
                 sat = v3_1.SOSatV3point1(mode,survey_years=5.,survey_efficiency=0.2*0.85)#,el=50.) #SO BASELINE
                 vfreqs2 = sat.get_bands()
 
-                freq = np.append(freq,vfreqs2)
-                fsky_SOsat = 0.1 #SO nominal fsky 
-                sat_lmax = 2000
+#                freqs_nosat = freq
+                freq = np.append(vfreqs2,freq)
+                fsky_SOsat = 0.1 #SO nominal fsky
+                sat_lmax = 4000 #real one:400
                 v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat = sat.get_noise_curves(fsky_SOsat, sat_lmax, v3dell, full_covar=False, deconv_beam=True)
+                #print (v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat)
+                print ('here',sat_lmax)
+                
+                iniFile = "input/exp_config.ini"
+                Config = SafeConfigParser()
+                Config.optionxform=str
+                Config.read(iniFile)
+                
+                experimentName1 = 'PlanckHFI'
+                
+                beams1 = list_from_config(Config,experimentName1,'beams')
+                noises1 = list_from_config(Config,experimentName1,'noises')
+                freqs1 = list_from_config(Config,experimentName1,'freqs')
+                lmax1 = int(Config.getfloat(experimentName1,'lmax'))
+                lknee1 = list_from_config(Config,experimentName1,'lknee')[0]
+                alpha1 = list_from_config(Config,experimentName1,'alpha')[0]
+                fsky1 = 0.6
+                
+                #Add Planck
+                freq = np.append(freq,freqs1)
+                
+                
+
+            elif add=='P+SO+SAT':
+                sat = v3_1.SOSatV3point1(mode,survey_years=5.,survey_efficiency=0.2*0.85)#,el=50.) #SO BASELINE
+                vfreqs2 = sat.get_bands()
+
+#                freqs_nosat = freq
+                freq = np.append(vfreqs2,freq)
+                fsky_SOsat = 0.1 #SO nominal fsky
+                sat_lmax = 4000 #real one:400
+                v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat = sat.get_noise_curves(fsky_SOsat, sat_lmax, v3dell, full_covar=False, deconv_beam=True)
+                #print (v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat)
+                print ('here',sat_lmax)
+                
+                lat2 = v3_1.SOLatV3point1(mode,survey_years=5.,survey_efficiency=0.2*0.85)#el=50.) #SO BASELINE
+                vfreqs1 = lat2.get_bands()
+                freq = np.append(freq,vfreqs1)
+                fsky_SO = 0.4 #SO nominal fsky
+                v3ell_SO,N_ell_T_LA_full_SO, N_ell_P_LA_SO = lat2.get_noise_curves(fsky_SO, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
+                
+                #add SO SAT
+                iniFile = "input/exp_config.ini"
+                Config = SafeConfigParser()
+                Config.optionxform=str
+                Config.read(iniFile)
+                
+                experimentName1 = 'PlanckHFI'
+                
+                beams1 = list_from_config(Config,experimentName1,'beams')
+                noises1 = list_from_config(Config,experimentName1,'noises')
+                freqs1 = list_from_config(Config,experimentName1,'freqs')
+                lmax1 = int(Config.getfloat(experimentName1,'lmax'))
+                lknee1 = list_from_config(Config,experimentName1,'lknee')[0]
+                alpha1 = list_from_config(Config,experimentName1,'alpha')[0]
+                fsky1 = 0.6
+                
+                #Add Planck
+                freq = np.append(freq,freqs1)
+        elif v3mode==-1:
+            if add=='C+SAT':
+                import silc.SO_Noise_Calculator_Public_v3_1_1 as v3_1
+                import  silc.ccat_noise_200414 as ccatp #silc.lat_noise_190819_w350ds4 as ccatp
+                mode = 'baseline'
+                sat = v3_1.SOSatV3point1(mode,survey_years=5.,survey_efficiency=0.2*0.85)#,el=50.) #SO BASELINE
+                vfreqs2 = sat.get_bands()
+                v3lmax = self.evalells.max()
+                v3dell = np.diff(self.evalells)[0]
+#                freqs_nosat = freq
+                freq = np.append(vfreqs2,freq)
+                
+                fsky_SOsat = 0.1 #SO nominal fsky
+                sat_lmax = 4000 #real one:400
+                v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat = sat.get_noise_curves(fsky_SOsat, sat_lmax, v3dell, full_covar=False, deconv_beam=True)
+                #print (v3ell_SOsat,N_ell_T_LA_full_SOsat, N_ell_P_LA_SOsat)
+                print ('here',sat_lmax)
 
 
+                lat = ccatp.CcatLatv2b(v3mode,el=50.,survey_years=4000/24./365.24,survey_efficiency=1.0)
+                vfreqs = lat.get_bands()
+                print("CCATP + SO goal")
+                print("Replacing ",freq,  " with ", vfreqs)
+                N_bands = len(vfreqs)
+                freq = np.append(freq,vfreqs)
+                vbeams = lat.get_beams()
+                print("Replacing ",fwhms,  " with ", vbeams)
+                #fwhms = vbeams
 
+                v3lmax = self.evalells.max()
+                v3dell = np.diff(self.evalells)[0]
+                #print("Using ",fsky," for fsky")
+                fsky_C=0.4
+                v3ell,N_ell_T_LA_full_C, N_ell_P_LA_C = lat.get_noise_curves(fsky_C, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
+                #_noatm
+                N_ell_T_LA_C = np.diagonal(N_ell_T_LA_full_C).T
+                #Map_white_noise_levels = lat.get_white_noise(fsky=0.4)**.5
+                
+                
+            else:
+                freq=freq
+                
+                
+                
+                
+            
+                
+                
         #if (len(freqs) > 1):
         #    fq_mat   = np.matlib.repmat(freqs,len(freqs),1)
         #    fq_mat_t = np.transpose(np.matlib.repmat(freqs,len(freqs),1))
@@ -291,6 +416,8 @@ class ILC_simple:
         cib = np.array([])
    
         freqs = freq
+        self.N=[]
+        self.NP=[]
 
         for ii in range(len(self.evalells)):
 
@@ -305,6 +432,7 @@ class ILC_simple:
                 inst_noise = (noise_func(self.evalells[ii],np.array(fwhms),np.array(rms_noises),lknee,alpha,dimensionless=False) /  self.cc.c['TCMBmuK']**2.)
                 nells = abs(np.diag(inst_noise))
                 nells_pol=nells*np.sqrt(2.)
+                #print(inst_noise)
             elif v3mode<=2:
                 nells = N_ell_T_LA_full[:,:,ii]/ self.cc.c['TCMBmuK']**2.
                 nells_pol = N_ell_P_LA[:,:,ii]/ self.cc.c['TCMBmuK']**2.
@@ -324,8 +452,13 @@ class ILC_simple:
             elif v3mode>=5:
                 nells = N_ell_T_LA_full[:,:,ii]/ self.cc.c['TCMBmuK']**2.
                 nells_pol = N_ell_P_LA[:,:,ii]/ self.cc.c['TCMBmuK']**2.
-            
+                """
+                if ii==700:
+                    print(N_ell_T_LA_full[:,:,ii])
+                else:
+                    nells=nells
                 #evalells = np.arange(2,lmax1,dell1)
+                """
             if add =='P':
                 inst_noise1 = noise_func(self.evalells[ii],np.array(beams1),np.array(noises1),lknee1,alpha1,dimensionless=False)/self.cc.c['TCMBmuK']**2.
                 inst_noise1_pol = np.sqrt(2.)* inst_noise1
@@ -348,21 +481,71 @@ class ILC_simple:
                 
                 nells=combineexpnoise(nells,nells_SO)
                 nells_pol = combineexpnoise(nells_pol,nells_SO_pol)
+                
+                
+            elif add =='L+P':
+                l_lmax=4000
+                if self.evalells[ii] < l_lmax:
+                    inst_noise2 = noise_func(self.evalells[ii],np.array(beams2),np.array(noises2),lknee2,alpha2,dimensionless=False)/self.cc.c['TCMBmuK']**2.
+                    inst_noise2_pol = np.sqrt(2.)* inst_noise2
+                
+                    nells_lite = np.diag(inst_noise2)
+                    nells_lite_pol = np.diag(inst_noise2_pol)
+                    nells=combineexpnoise(nells_lite,nells)
+                    nells_pol = combineexpnoise(nells_lite_pol,nells_pol)
 
+                else:
+                    nells_lite = (10**9)*np.identity(len(nells_lite))
+                    nells=combineexpnoise(nells_lite,nells)
+                    nells_pol = combineexpnoise(nells_lite,nells_pol)
+                
+                
+                inst_noise1 = noise_func(self.evalells[ii],np.array(beams1),np.array(noises1),lknee1,alpha1,dimensionless=False)/self.cc.c['TCMBmuK']**2.
+                inst_noise1_pol = np.sqrt(2.)* inst_noise1
+                
+                nells_planck = np.diag(inst_noise1)
+                nells_planck_pol = np.diag(inst_noise1_pol)
+                nells=combineexpnoise(nells,nells_planck)
+                nells_pol = combineexpnoise(nells_pol,nells_planck_pol)
+
+                
+            elif add =='SO':
+                
+
+                nells_SO = N_ell_T_LA_full_SO[:,:,ii]/ self.cc.c['TCMBmuK']**2.
+                nells_SO_pol = N_ell_P_LA_SO[:,:,ii]/ self.cc.c['TCMBmuK']**2.
+                
+                nells=combineexpnoise(nells,nells_SO)
+                nells_pol = combineexpnoise(nells_pol,nells_SO_pol)
+            
             elif add=='SAT':
                 if self.evalells[ii] < sat_lmax:
                     nells_SOsat = (10**9)*np.identity(len(N_ell_P_LA_SOsat[:,ii]))
                     nells_SOsat_pol = np.diag(N_ell_P_LA_SOsat[:,ii]/ self.cc.c['TCMBmuK']**2.)
 
-                    nells=combineexpnoise(nells,nells_SOsat)
-                    nells_pol = combineexpnoise(nells_pol,nells_SOsat_pol)
+                    nells=combineexpnoise(nells_SOsat,nells)
+                    nells_pol = combineexpnoise(nells_SOsat_pol,nells_pol)
+                    #print(nells_pol)
 
                 else:
                     nells_SOsat = (10**9)*np.identity(len(nells_SOsat))
-                    nells=combineexpnoise(nells,nells_SOsat)
-                    nells_pol = combineexpnoise(nells_pol,nells_SOsat)
+                    nells=combineexpnoise(nells_SOsat,nells)
+                    nells_pol = combineexpnoise(nells_SOsat,nells_pol)
 
             elif add =='SO+SAT':
+                if self.evalells[ii] < sat_lmax:
+                    nells_SOsat = (10**9)*np.identity(len(N_ell_P_LA_SOsat[:,ii]))
+                    nells_SOsat_pol = np.diag(N_ell_P_LA_SOsat[:,ii]/ self.cc.c['TCMBmuK']**2.)
+
+                    nells=combineexpnoise(nells_SOsat,nells)
+                    nells_pol = combineexpnoise(nells_SOsat_pol,nells_pol)
+                    #print(nells_pol)
+
+                else:
+                    nells_SOsat = (10**9)*np.identity(len(nells_SOsat))
+                    nells=combineexpnoise(nells_SOsat,nells)
+                    nells_pol = combineexpnoise(nells_SOsat,nells_pol)
+                    
                 nells_SO = N_ell_T_LA_full_SO[:,:,ii]/ self.cc.c['TCMBmuK']**2.
                 nells_SO_pol = N_ell_P_LA_SO[:,:,ii]/ self.cc.c['TCMBmuK']**2.
 
@@ -370,45 +553,89 @@ class ILC_simple:
                 nells_pol = combineexpnoise(nells_pol,nells_SO_pol)
 
                 
+                
+            
+            elif add =='P+SAT':
                 if self.evalells[ii] < sat_lmax:
                     nells_SOsat = (10**9)*np.identity(len(N_ell_P_LA_SOsat[:,ii]))
                     nells_SOsat_pol = np.diag(N_ell_P_LA_SOsat[:,ii]/ self.cc.c['TCMBmuK']**2.)
 
-                    nells=combineexpnoise(nells,nells_SOsat)
-                    nells_pol = combineexpnoise(nells_pol,nells_SOsat_pol)
+                    nells=combineexpnoise(nells_SOsat,nells)
+                    nells_pol = combineexpnoise(nells_SOsat_pol,nells_pol)
+                    #print(nells_pol)
 
                 else:
                     nells_SOsat = (10**9)*np.identity(len(nells_SOsat))
-                    nells=combineexpnoise(nells,nells_SOsat)
-                    nells_pol = combineexpnoise(nells_pol,nells_SOsat)
-
-            elif add =='P+SO+SAT':
+                    nells=combineexpnoise(nells_SOsat,nells)
+                    nells_pol = combineexpnoise(nells_SOsat,nells_pol)
+                    
                 inst_noise1 = noise_func(self.evalells[ii],np.array(beams1),np.array(noises1),lknee1,alpha1,dimensionless=False)/self.cc.c['TCMBmuK']**2.
                 inst_noise1_pol = np.sqrt(2.)* inst_noise1
-
+                
                 nells_planck = np.diag(inst_noise1)
                 nells_planck_pol = np.diag(inst_noise1_pol)
                 nells=combineexpnoise(nells,nells_planck)
                 nells_pol = combineexpnoise(nells_pol,nells_planck_pol)
 
-                nells_SO = N_ell_T_LA_full_SO[:,:,ii]/ self.cc.c['TCMBmuK']**2.
-                nells_SO_pol = N_ell_P_LA_SO[:,:,ii]/ self.cc.c['TCMBmuK']**2.
-
-                nells=combineexpnoise(nells,nells_SO)
-                nells_pol = combineexpnoise(nells_pol,nells_SO_pol)
-
-
+            elif add=='C+SAT':
+                sat_lmax=4000
                 if self.evalells[ii] < sat_lmax:
                     nells_SOsat = (10**9)*np.identity(len(N_ell_P_LA_SOsat[:,ii]))
                     nells_SOsat_pol = np.diag(N_ell_P_LA_SOsat[:,ii]/ self.cc.c['TCMBmuK']**2.)
 
-                    nells=combineexpnoise(nells,nells_SOsat)
-                    nells_pol = combineexpnoise(nells_pol,nells_SOsat_pol)
+                    nells=combineexpnoise(nells_SOsat,nells)
+                    nells_pol = combineexpnoise(nells_SOsat_pol,nells_pol)
+                    #print(nells_pol)
 
                 else:
                     nells_SOsat = (10**9)*np.identity(len(nells_SOsat))
-                    nells=combineexpnoise(nells,nells_SOsat)
-                    nells_pol = combineexpnoise(nells_pol,nells_SOsat)
+                    nells=combineexpnoise(nells_SOsat,nells)
+                    nells_pol = combineexpnoise(nells_SOsat,nells_pol)
+                    
+                nells_C = N_ell_T_LA_full_C[:,:,ii]/ self.cc.c['TCMBmuK']**2.
+                nells_pol_C = N_ell_P_LA_C[:,:,ii]/ self.cc.c['TCMBmuK']**2.
+                nells=combineexpnoise(nells,nells_C)
+                nells_pol = combineexpnoise(nells_pol,nells_pol_C)
+                    
+            elif add=='P+SO+SAT':
+                if self.evalells[ii] < sat_lmax:
+                    nells_SOsat = (10**9)*np.identity(len(N_ell_P_LA_SOsat[:,ii]))
+                    nells_SOsat_pol = np.diag(N_ell_P_LA_SOsat[:,ii]/ self.cc.c['TCMBmuK']**2.)
+
+                    nells=combineexpnoise(nells_SOsat,nells)
+                    nells_pol = combineexpnoise(nells_SOsat_pol,nells_pol)
+                    #print(nells_pol)
+
+                else:
+                    nells_SOsat = (10**9)*np.identity(len(nells_SOsat))
+                    nells=combineexpnoise(nells_SOsat,nells)
+                    nells_pol = combineexpnoise(nells_SOsat,nells_pol)
+                
+                nells_SO = N_ell_T_LA_full_SO[:,:,ii]/ self.cc.c['TCMBmuK']**2.
+                nells_SO_pol = N_ell_P_LA_SO[:,:,ii]/ self.cc.c['TCMBmuK']**2.
+                
+                nells=combineexpnoise(nells,nells_SO)
+                nells_pol = combineexpnoise(nells_pol,nells_SO_pol)
+                
+                inst_noise1 = noise_func(self.evalells[ii],np.array(beams1),np.array(noises1),lknee1,alpha1,dimensionless=False)/self.cc.c['TCMBmuK']**2.
+                inst_noise1_pol = np.sqrt(2.)* inst_noise1
+                
+                nells_planck = np.diag(inst_noise1)
+                nells_planck_pol = np.diag(inst_noise1_pol)
+                nells=combineexpnoise(nells,nells_planck)
+                nells_pol = combineexpnoise(nells_pol,nells_planck_pol)
+                
+                
+            self.N.append(np.diagonal(nells* self.cc.c['TCMBmuK']**2.))
+            self.NP.append(np.diagonal(nells_pol* self.cc.c['TCMBmuK']**2.))
+                    
+                
+                
+                
+
+                
+                
+                
 
 
             #cmb_ell = np.append(cmb_ell, self.cc.clttfunc(self.evalells[ii]))
@@ -416,7 +643,7 @@ class ILC_simple:
 
             nell = np.append(nell,nells) #np.diagonal(nells* self.cc.c['TCMBmuK']**2.))
             nell_pol = np.append(nell_pol,nells_pol) #np.diagonal(nells_pol* self.cc.c['TCMBmuK']**2.))
-
+            
             totfg = np.append(totfg, 
                               (self.fgs.rad_ps(self.evalells[ii],freqs[None,:],freqs[:,None]) + self.fgs.cib_p(self.evalells[ii],freqs[None,:],freqs[:,None]) +
                                self.fgs.cib_c(self.evalells[ii],freqs[None,:],freqs[:,None]) + self.fgs.tSZ_CIB(self.evalells[ii],freqs[None,:],freqs[:,None])) \
@@ -437,16 +664,9 @@ class ILC_simple:
                                   (self.fgs.rad_ps(self.evalells[ii],freqs[None,:],freqs[:,None]) + self.fgs.tSZ_CIB(self.evalells[ii],freqs[None,:],freqs[:,None])) \
                                       / self.cc.c['TCMBmuK']**2. / ((self.evalells[ii]+1.)*self.evalells[ii]) * 2.* np.pi)
 
-#            fgrspol=np.append(fgrspol,
-#                              (self.fgs.rs_autoEE(self.evalells[ii],freqs[None,:],freqs[:,None]))/ self.cc.c['TCMBmuK']**2. / ((self.evalells[ii]+1.)*self.evalells[ii]) * 2.* np.pi)
-
             fgrspol=np.append(fgrspol,
-                              (self.fgs.rs_autoEE(self.evalells[ii],freqs[None,:],freqs[:,None]) + 
-                               self.fgs.gal_sync_pol_new(self.evalells[ii],freqs[None,:],freqs[:,None]) + 
-                               self.fgs.gal_dust_pol_new(self.evalells[ii],freqs[None,:],freqs[:,None]) +
-                               self.fgs.rad_pol_ps_new(self.evalells[ii],freqs[None,:],freqs[:,None])) \ 
-                              / self.cc.c['TCMBmuK']**2. / ((self.evalells[ii]+1.)*self.evalells[ii]) * 2.* np.pi)
-            
+                              (self.fgs.rs_autoEE(self.evalells[ii],freqs[None,:],freqs[:,None])+self.fgs.gal_sync_pol_new(self.evalells[ii],freqs[None,:],freqs[:,None])+self.fgs.gal_dust_pol_new(self.evalells[ii],freqs[None,:],freqs[:,None])+self.fgs.rad_pol_ps_new(self.evalells[ii],freqs[None,:],freqs[:,None]))/ self.cc.c['TCMBmuK']**2. / ((self.evalells[ii]+1.)*self.evalells[ii]) * 2.* np.pi)
+                              
             #ksz = np.append(ksz,
             #                fq_mat*0.0 + self.fgs.ksz_temp(self.evalells[ii]) / self.cc.c['TCMBmuK']**2. / ((self.evalells[ii]+1.)*self.evalells[ii]) * 2.* np.pi)
 
@@ -599,12 +819,13 @@ class ILC_simple:
             if (detect):
                 s2nper=(2*i+1)*np.nan_to_num((X[i]**2)/((C1[k]+N1[k])*(C2[k]+N2[k])))
             else:
-                s2nper=(2*i+1)*np.nan_to_num((X[i]**2)/((C1[k]+N1[k])*(C2[k]+N2[k])+(X)**2))
+                s2nper=(2*i+1)*np.nan_to_num((X[i]**2)/((C1[k]+N1[k])*(C2[k]+N2[k])+(X[i])**2))
             var = ClSum/(2.*i+1.)/self.fsky
             covs.append(var)
             s2n.append(s2nper)
 
         errs=np.sqrt(np.array(covs))
+        #s2n.sort(reverse=True)
         s2n=self.fsky*sum(s2n)
         s2n=np.sqrt(s2n)
         return s2n,errs
@@ -738,8 +959,6 @@ class ILC_simple:
         #noise2=[]
         #f_1=self.fgs.rs_nu(np.array(self.freqs))
         #f_nu2=f_1*0.0+1.
-
-
             
             #covariance matrices, which include information from all signals
             #### NB THIS IS NOT RIGHT
@@ -1145,4 +1364,3 @@ class ILC_simple:
             s2n=fsky2/2.*sum(s2n)
             s2n=np.nan_to_num(np.sqrt(s2n))
             return ellMids,cls_out,errs,s2n
-
