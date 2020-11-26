@@ -141,23 +141,28 @@ class ILC_simple:
                 import  silc.ccat_noise_200414 as ccatp #silc.lat_noise_190819_w350ds4 as ccatp
                 lat = ccatp.CcatLatv2b(v3mode,el=50.,survey_years=4000/24./365.24,survey_efficiency=1.0)
                 vfreqs = lat.get_bands()
-                print("CCATP + SO goal")
-                print("Replacing ",freq,  " with ", vfreqs)
+                print("CCATP")
+                print("Replacing ",freq,  " with ", vfreqs[:-1])
                 N_bands = len(vfreqs)
-                freq = vfreqs
+                freq = vfreqs[:-1] #Removing 800GHz
                 vbeams = lat.get_beams()
-                print("Replacing ",fwhms,  " with ", vbeams)
-                fwhms = vbeams
+                print("Replacing ",fwhms,  " with ", vbeams[:-1])
+                fwhms = vbeams[:-1] #Removing 800GHz
 
                 v3lmax = self.evalells.max()
                 v3dell = np.diff(self.evalells)[0]
                 print("Using ",fsky," for fsky")
 
-                v3ell,N_ell_T_LA_full, N_ell_P_LA = lat.get_noise_curves(fsky, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
+                v3ell,N_ell_T_LA_full_temp, N_ell_P_LA_temp = lat.get_noise_curves(fsky, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
                 #_noatm
+
+                N_ell_T_LA_full = N_ell_T_LA_full_temp[:-1,:-1,:]
+                N_ell_P_LA = N_ell_P_LA_temp[:-1,:-1,:]
                 N_ell_T_LA = np.diagonal(N_ell_T_LA_full).T
                 Map_white_noise_levels = lat.get_white_noise(fsky)**.5
-                print(Map_white_noise_levels)
+                #print (Map_white_noise_levels)
+                #print (np.shape(v3ell), np.shape(N_ell_T_LA_full),np.shape(N_ell_P_LA))
+                #sys.exit()
 
             if add=='P':
                 iniFile = "input/exp_config.ini"
