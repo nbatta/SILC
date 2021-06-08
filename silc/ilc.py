@@ -32,7 +32,7 @@ def constweightcalculator(f_1,f_2,N):
     """
     C=np.matmul(np.transpose(f_1),np.matmul(N,f_1))*np.matmul(np.transpose(f_2),np.matmul(N,f_2))-(np.matmul(np.transpose(f_2),np.matmul(N,f_1)))**2
     M=np.matmul(np.transpose(f_1),np.matmul(N,f_1))*np.matmul(np.transpose(f_2),N)-np.matmul(np.transpose(f_2),np.matmul(N,f_1))*np.matmul(np.transpose(f_1),N)
-    W=M/C
+    W=np.nan_to_num(M/C)
     return W
 
 def combineexpnoise(A1,A2):
@@ -48,7 +48,7 @@ def combineexpnoise(A1,A2):
 
 
 class ILC_simple:
-    def __init__(self, Cosmology, fgs ,fwhms=[1.5], rms_noises=[1.], freqs=[150.], lmax=8000, lknee=0., alpha=1., dell=1., v3mode=-1, fsky=None, noatm=False, add='None'):
+    def __init__(self, Cosmology, fgs ,fwhms=[1.5], rms_noises=[1.], freqs=[150.], lmax=8000, lknee=0., alpha=1., dell=1., v3mode=-1, fsky=None, noatm=False, add='None',fun=1):
         '''
         Inputs
         clusterCosmology is a class that contains cosmological parameters and power spectra.
@@ -92,10 +92,10 @@ class ILC_simple:
                 print("Simons Obs")
                 print("Replacing ",freq,  " with ", vfreqs)
                 N_bands = len(vfreqs)
-                freq = vfreqs
+                freq = vfreqs[:-1]
                 vbeams = lat.get_beams()
                 print("Replacing ",fwhms,  " with ", vbeams)
-                fwhms = vbeams
+                fwhms = vbeams[:-1]
 
                 v3lmax = self.evalells.max()
                 v3dell = np.diff(self.evalells)[0]
@@ -104,6 +104,8 @@ class ILC_simple:
                 v3ell,N_ell_T_LA_full, N_ell_P_LA = lat.get_noise_curves(fsky, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
 
                 N_ell_T_LA = np.diagonal(N_ell_T_LA_full).T
+                N_ell_T_LA_full=N_ell_T_LA_full[:-1,:-1,:]
+                N_ell_P_LA=N_ell_P_LA[:-1,:-1,:]
                 Map_white_noise_levels = lat.get_white_noise(fsky)**.5
 
             elif v3mode == 3:
@@ -117,25 +119,28 @@ class ILC_simple:
                 v3dell = np.diff(self.evalells)[0]
                 v3ell, N_ell_T_LA, N_ell_P_LA, Map_white_noise_levels = v3.AdvACT_noise(f_sky=fsky,ell_max=v3lmax+v3dell,delta_ell=v3dell)
 
-                '''
+                
             elif v3mode == 5:
-                import silc.ccat_noise_200414 as ccatp
-                lat = ccatp.CcatLatv2(mode,el=50.)
+                import  silc.ccat_noise_200831 as ccatp #silc.lat_noise_190819_w350ds4 as ccatp
+                lat = ccatp.CcatLatv2b(v3mode,el=50.,survey_years=4000/24./365.24,survey_efficiency=1.0,fun=fun)
                 vfreqs = lat.get_bands()
-                print("CCATP")
-                print("Replacing ",freqs,  " with ", vfreqs)
+                print("CCATP + SO goal")
+                print("Replacing ",freq,  " with ", vfreqs)
                 N_bands = len(vfreqs)
-                freqs = vfreqs
+                freq = vfreqs
                 vbeams = lat.get_beams()
                 print("Replacing ",fwhms,  " with ", vbeams)
                 fwhms = vbeams
+
                 v3lmax = self.evalells.max()
                 v3dell = np.diff(self.evalells)[0]
                 print("Using ",fsky," for fsky")
-                v3ell,N_ell_T_LA_full, N_ell_P_LA = lat.get_noise_curves(fsky, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
+
+                v3ell,N_ell_T_LA_full, N_ell_P_LA = lat.get_noise_curves(fsky, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True,fun=fun)
                 #_noatm
                 N_ell_T_LA = np.diagonal(N_ell_T_LA_full).T
                 Map_white_noise_levels = lat.get_white_noise(fsky)**.5
+                print(Map_white_noise_levels)
                 '''
             elif v3mode == 5:
                 import  silc.ccat_noise_200414 as ccatp #silc.lat_noise_190819_w350ds4 as ccatp
@@ -163,7 +168,7 @@ class ILC_simple:
                 #print (Map_white_noise_levels)
                 #print (np.shape(v3ell), np.shape(N_ell_T_LA_full),np.shape(N_ell_P_LA))
                 #sys.exit()
-
+                '''
             if add=='P':
                 iniFile = "input/exp_config.ini"
                 Config = SafeConfigParser()
@@ -352,6 +357,29 @@ class ILC_simple:
                 
                 #Add Planck
                 freq = np.append(freq,freqs1)
+            elif add=='C':
+                import silc.SO_Noise_Calculator_Public_v3_1_1 as v3_1
+                import  silc.ccat_noise_200414 as ccatp #silc.lat_noise_190819_w350ds4 as ccatp
+                mode = 'baseline'
+                
+
+                lat = ccatp.CcatLatv2b(v3mode,el=50.,survey_years=4000/24./365.24,survey_efficiency=1.0)
+                vfreqs = lat.get_bands()
+                print("CCATP + SO goal")
+                print("Replacing ",freq,  " with ", vfreqs)
+                N_bands = len(vfreqs)
+                freq = np.append(freq,vfreqs)
+                vbeams = lat.get_beams()
+                print("Replacing ",fwhms,  " with ", vbeams)
+                #fwhms = vbeams
+
+                v3lmax = self.evalells.max()
+                v3dell = np.diff(self.evalells)[0]
+                #print("Using ",fsky," for fsky")
+                fsky_C=0.4
+                v3ell,N_ell_T_LA_full_C, N_ell_P_LA_C = lat.get_noise_curves(fsky_C, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
+                #_noatm
+                N_ell_T_LA_C = np.diagonal(N_ell_T_LA_full_C).T
         elif v3mode==-1:
             if add=='C+SAT':
                 import silc.SO_Noise_Calculator_Public_v3_1_1 as v3_1
@@ -390,7 +418,20 @@ class ILC_simple:
                 N_ell_T_LA_C = np.diagonal(N_ell_T_LA_full_C).T
                 #Map_white_noise_levels = lat.get_white_noise(fsky=0.4)**.5
                 
-                
+            elif add=='SO':
+                import silc.SO_Noise_Calculator_Public_v3_1_1 as v3_1
+                #Add SO
+                mode = 'baseline'
+                lat2 = v3_1.SOLatV3point1(mode,survey_years=5.,survey_efficiency=0.2*0.85) #SO BASELINE
+                vfreqs2 = lat2.get_bands()
+                freq = np.append(freq,vfreqs2)
+                fsky_SO = 0.4 #SO nominal fsky
+                v3lmax = self.evalells.max()
+                v3dell = np.diff(self.evalells)[0]
+                v3ell_SO,N_ell_T_LA_full_SO, N_ell_P_LA_SO = lat2.get_noise_curves(fsky_SO, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)
+            
+            
+            
             else:
                 freq=freq
                 
@@ -419,11 +460,14 @@ class ILC_simple:
         #ksz = np.array([])
         tsz = np.array([])
         cib = np.array([])
-   
+        rps=np.array([])
+        tszcib=np.array([])
         freqs = freq
         self.N=[]
         self.NP=[]
-
+        
+        self.rps=[]
+        self.tszcib=[]
         for ii in range(len(self.evalells)):
 
 #            if (add=='SO+SAT'):
@@ -601,6 +645,13 @@ class ILC_simple:
                 nells_pol_C = N_ell_P_LA_C[:,:,ii]/ self.cc.c['TCMBmuK']**2.
                 nells=combineexpnoise(nells,nells_C)
                 nells_pol = combineexpnoise(nells_pol,nells_pol_C)
+                
+            elif add=='C':
+                
+                nells_C = N_ell_T_LA_full_C[:,:,ii]/ self.cc.c['TCMBmuK']**2.
+                nells_pol_C = N_ell_P_LA_C[:,:,ii]/ self.cc.c['TCMBmuK']**2.
+                nells=combineexpnoise(nells,nells_C)
+                nells_pol = combineexpnoise(nells_pol,nells_pol_C)
                     
             elif add=='P+SO+SAT':
                 if self.evalells[ii] < sat_lmax:
@@ -681,7 +732,10 @@ class ILC_simple:
             cib = np.append(cib,
                             (self.fgs.cib_p(self.evalells[ii],freqs[None,:],freqs[:,None]) + self.fgs.cib_c(self.evalells[ii],freqs[None,:],freqs[:,None])) \
                                 / self.cc.c['TCMBmuK']**2. / ((self.evalells[ii]+1.)*self.evalells[ii]) * 2.* np.pi)
-
+            rps=np.append(rps,(self.fgs.rad_ps(self.evalells[ii],freqs[None,:],freqs[:,None])) \
+                                      / self.cc.c['TCMBmuK']**2. / ((self.evalells[ii]+1.)*self.evalells[ii]) * 2.* np.pi)
+            tszcib=np.append(tszcib,self.fgs.tSZ_CIB(self.evalells[ii],freqs[None,:],freqs[:,None])\
+                                      / self.cc.c['TCMBmuK']**2. / ((self.evalells[ii]+1.)*self.evalells[ii]) * 2.* np.pi)
         #self.nell_ll = np.reshape(nell_ll,[self.evalells,self.freq,self.freq])
         #self.nell_ll_pol = np.reshape(nell_ll_pol,[self.evalells,self.freq])
 
@@ -697,6 +751,8 @@ class ILC_simple:
         self.fgrspol = np.reshape(fgrspol,[len(self.evalells),len(self.freqs),len(self.freqs)])
         self.tsz = np.reshape(tsz,[len(self.evalells),len(self.freqs),len(self.freqs)])
         self.cib = np.reshape(cib,[len(self.evalells),len(self.freqs),len(self.freqs)])
+        self.rps = np.reshape(rps,[len(self.evalells),len(self.freqs),len(self.freqs)])
+        self.tszcib = np.reshape(tszcib,[len(self.evalells),len(self.freqs),len(self.freqs)])
 
         #np.reshape(cmb_ell_pol,[self.evalells,self.freq,self.freq])
         self.nells = np.reshape(nell,[len(self.evalells),len(self.freqs),len(self.freqs)])
@@ -734,7 +790,46 @@ class ILC_simple:
             Nll_pol_ilc = np.append(Nll_pol_ilc, np.dot(np.transpose(Wll_pol), np.dot(Nll_pol, Wll_pol)))
 
         return Nll_ilc, Nll_pol_ilc, Wll_out, Wll_pol_out
-
+    
+    def bias(self,constraint=False):
+        f = self.fgs.rs_nu(np.array(self.freqs)) #Rayliegh
+        g = self.freqs*0.0 + 1. #CMB
+        cib=np.array([])
+        rps=np.array([])
+        tsz=np.array([])
+        #gain=np.array([])
+        for ii in range(len(self.evalells)):
+            Nll = self.cmb_ell[ii,None,None]+self.totfgrs[ii,:,:]  + self.tsz[ii,:,:] + self.ksz[ii,None,None] + self.nells[ii,:,:]
+            Nll_inv=np.linalg.inv(Nll)
+            if (constraint):
+                Wll = constweightcalculator(g,f,Nll_inv)
+            else:
+                Wll = weightcalculator(f, Nll)
+            #G=Nll*0.01
+            cib=np.append(cib,np.dot(np.transpose(Wll), np.dot(self.cib[ii,:,:], Wll)))
+            rps=np.append(rps,np.dot(np.transpose(Wll), np.dot(self.rps[ii,:,:], Wll)))
+            tsz=np.append(tsz,np.dot(np.transpose(Wll), np.dot(self.tsz[ii,:,:], Wll)))
+            #gain=np.append(tszcib,np.dot(np.transpose(Wll), np.dot(G, Wll)))
+        return cib,rps,tsz
+    
+    def gain(self,constraint=False):
+        f = self.fgs.rs_nu(np.array(self.freqs)) #Rayliegh
+        g = self.freqs*0.0 + 1. #CMB
+        
+        gain=np.array([])
+        for ii in range(len(self.evalells)):
+            Nll = self.totfgrs[ii,:,:] + self.cmb_ell[ii,None,None] + self.tsz[ii,:,:] + self.ksz[ii,None,None] #+ self.nells[ii,:,:]
+            Nll_inv=np.linalg.inv(Nll+self.nells[ii,:,:])
+            if (constraint):
+                Wll = constweightcalculator(g,f,Nll_inv)
+            else:
+                Wll = weightcalculator(f, Nll+self.nells[ii,:,:])
+            G=Nll*0.01
+            gain=np.append(gain,np.dot(np.transpose(Wll), np.dot(G, Wll)))
+        return gain
+    
+    
+        
     def gen_ilc_nopol(self,f,g,constrained=None,noforegrounds=None):
 
         Nll_ilc = np.array([])
@@ -831,10 +926,32 @@ class ILC_simple:
 
         errs=np.sqrt(np.array(covs))
         #s2n.sort(reverse=True)
+        self.s2nell=s2n
+        self.s2nell=self.fsky*np.array(self.s2nell)
+        self.s2nell=np.sqrt(self.s2nell)
         s2n=self.fsky*sum(s2n)
         s2n=np.sqrt(s2n)
         return s2n,errs
+    def auto_err_calc(self,ell,C1,N1):
+        covs = []
+        s2n=[]
+        
+        for k in range(len(ell)):
+            i=int(ell[k])
+            ClSum = np.nan_to_num((C1[k]+N1[k])**2)
+            #if (detect):
+             #   s2nper=(2*i+1)*np.nan_to_num((C1[i]**2)/(N1[k]**2))
+            #else:
+            s2nper=(2*i+1)*np.nan_to_num((C1[k]**2)/(C1[k]+N1[k])**2)
+            var = 2*ClSum/(2.*i+1.)/self.fsky
+            covs.append(var)
+            s2n.append(s2nper)
 
+        errs=np.sqrt(np.array(covs))
+        #s2n.sort(reverse=True)
+        s2n=self.fsky*sum(s2n)/2
+        s2n=np.sqrt(s2n)
+        return s2n,errs
     #def Rayleigh_forecast(self,ellBinEdges,type='tt',detection=True):
     def Rayleigh_forecast(self,ellmax,type='tt',detection=True,noforegrounds=None):
 
@@ -863,19 +980,19 @@ class ILC_simple:
         assert np.max(ells) <= np.max(self.evalells) and np.max(ells) <= np.max(ell_temp), "Issue with template ells"
         
         if type=='tt': #T_CMB T_rs
-            clsX=np.loadtxt(signalfile,unpack=True,usecols=[4]) 
+            clsX=np.loadtxt(signalfile,unpack=True,usecols=[4])
             clsX=clsX*(self.fgs.nu_rs/500)**4 / self.cc.c['TCMBmuK']**2./ ((ell_temp+1.)*ell_temp) * 2.* np.pi
             sn,NllX = self.cross_err_calc(ells,cmb,Nll_cmb,rs,Nll_rs,clsX,detection)
         elif type=='te':#T_CMB E_rs
-            clsX=np.loadtxt(signalfile,unpack=True,usecols=[5]) 
+            clsX=np.loadtxt(signalfile,unpack=True,usecols=[5])
             clsX=clsX*(self.fgs.nu_rs/500)**4 / self.cc.c['TCMBmuK']**2./ ((ell_temp+1.)*ell_temp) * 2.* np.pi
             sn,NllX = self.cross_err_calc(ells,cmb,Nll_cmb,rs_pol,Nll_rs_pol,clsX,detection)
         elif type=='et': #E_CMB T_rs
-            clsX=np.loadtxt(signalfile,unpack=True,usecols=[6]) 
+            clsX=np.loadtxt(signalfile,unpack=True,usecols=[6])
             clsX=clsX*(self.fgs.nu_rs/500)**4 / self.cc.c['TCMBmuK']**2./ ((ell_temp+1.)*ell_temp) * 2.* np.pi
             sn, NllX = self.cross_err_calc(ells,cmb_pol,Nll_cmb_pol,rs,Nll_rs,clsX,detection)
         elif type=='ee': #E_CMB E_rs
-            clsX=np.loadtxt(signalfile,unpack=True,usecols=[7]) 
+            clsX=np.loadtxt(signalfile,unpack=True,usecols=[7])
             clsX=clsX*(self.fgs.nu_rs/500)**4 / self.cc.c['TCMBmuK']**2./ ((ell_temp+1.)*ell_temp) * 2.* np.pi
             sn, NllX = self.cross_err_calc(ells,cmb_pol,Nll_cmb_pol,rs_pol,Nll_rs_pol,clsX,detection)
         else:
@@ -883,13 +1000,16 @@ class ILC_simple:
             
         return clsX, NllX, sn
 
-    '''
+    
     def tsz_forecast(self,ellmax,constrained=None):
         fsky = self.fsky
         ells = np.arange(2,ellmax,1)
-        Nll_tsz = self.tsz_opt()
+        Nll_tsz = self.tsz_opt(constrained='cib')
+        cls=self.fgs.tSZ(self.evalells,self.fgs.nu_rs,self.fgs.nu_rs) / self.cc.c['TCMBmuK']**2.\
+            / ((self.evalells+1.)*self.evalells) * 2.* np.pi
+        sn,nlls=self.auto_err_calc(ells,cls,Nll_tsz)
         return cls,nlls,sn
-    '''    
+    
 
 
 #Cross ET            #ells=ells[0:ellmax]
