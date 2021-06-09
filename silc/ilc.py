@@ -122,7 +122,7 @@ class ILC_simple:
                 
             elif v3mode == 5:
                 import  silc.ccat_noise_200831 as ccatp #silc.lat_noise_190819_w350ds4 as ccatp
-                lat = ccatp.CcatLatv2b(v3mode,el=50.,survey_years=4000/24./365.24,survey_efficiency=1.0,fun=fun)
+                lat = ccatp.CcatLatv2b(v3mode,el=50.,survey_years=4000/24./365.24,survey_efficiency=1.0)#,fun=fun)
                 vfreqs = lat.get_bands()
                 print("CCATP + SO goal")
                 print("Replacing ",freq,  " with ", vfreqs)
@@ -136,7 +136,7 @@ class ILC_simple:
                 v3dell = np.diff(self.evalells)[0]
                 print("Using ",fsky," for fsky")
 
-                v3ell,N_ell_T_LA_full, N_ell_P_LA = lat.get_noise_curves(fsky, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True,fun=fun)
+                v3ell,N_ell_T_LA_full, N_ell_P_LA = lat.get_noise_curves(fsky, v3lmax+v3dell, v3dell, full_covar=True, deconv_beam=True)#,fun=fun)
                 #_noatm
                 N_ell_T_LA = np.diagonal(N_ell_T_LA_full).T
                 Map_white_noise_levels = lat.get_white_noise(fsky)**.5
@@ -801,6 +801,7 @@ class ILC_simple:
         for ii in range(len(self.evalells)):
             Nll = self.cmb_ell[ii,None,None]+self.totfgrs[ii,:,:]  + self.tsz[ii,:,:] + self.ksz[ii,None,None] + self.nells[ii,:,:]
             Nll_inv=np.linalg.inv(Nll)
+            
             if (constraint):
                 Wll = constweightcalculator(g,f,Nll_inv)
             else:
@@ -811,6 +812,31 @@ class ILC_simple:
             tsz=np.append(tsz,np.dot(np.transpose(Wll), np.dot(self.tsz[ii,:,:], Wll)))
             #gain=np.append(tszcib,np.dot(np.transpose(Wll), np.dot(G, Wll)))
         return cib,rps,tsz
+
+    def bias_tsz(self,constraint=False):
+        f = f_nu(self.cc.c,np.array(self.freqs)) #tSZ
+        if (constraint):
+            g = self.fgs.f_nu_cib(np.array(self.freqs)) #CIB
+        else:
+            g = 0
+
+        cib=np.array([])
+        Nll_out=np.array([])
+        for ii in range(len(self.evalells)):
+            Nll = self.cmb_ell[ii,None,None]+self.totfgrs[ii,:,:]  + self.tsz[ii,:,:] + self.ksz[ii,None,None] + self.nells[ii,:,:]
+            Nll_inv=np.linalg.inv(Nll)
+            
+            if (constraint):
+                Wll = constweightcalculator(g,f,Nll_inv)
+            else:
+                Wll = weightcalculator(f, Nll)
+            #G=Nll*0.01
+            cib=np.append(cib,np.dot(np.transpose(Wll), np.dot(self.cib[ii,:,:], Wll)))
+            Nll_out = np.append(Nll_out,np.dot(np.transpose(Wll), np.dot(Nll, Wll)))
+
+            #gain=np.append(tszcib,np.dot(np.transpose(Wll), np.dot(G, Wll)))
+        return cib,Nll_out
+
     
     def gain(self,constraint=False):
         f = self.fgs.rs_nu(np.array(self.freqs)) #Rayliegh
